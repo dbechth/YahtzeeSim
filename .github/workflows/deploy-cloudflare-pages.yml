@@ -1,0 +1,42 @@
+name: Deploy Yahtzee Web to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - YahtzeeSim.Web/**
+      - .github/workflows/deploy-cloudflare-pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  WEB_PROJECT: "YahtzeeSim.Web/YahtzeeSim.Web.csproj"
+  PUBLISH_DIR: "YahtzeeSim.Web/bin/Release/net9.0/publish/wwwroot"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish Blazor WebAssembly
+        run: dotnet publish ${{ env.WEB_PROJECT }} -c Release
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+          directory: ${{ env.PUBLISH_DIR }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

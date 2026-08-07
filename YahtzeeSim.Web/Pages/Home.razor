@@ -1,0 +1,392 @@
+﻿@page "/"
+
+<PageTitle>Yahtzee</PageTitle>
+
+<section class="hero">
+	<div>
+		<h1>Yahtzee Family Edition</h1>
+		<p>Install this on phone home screens and play without the app store.</p>
+	</div>
+	<div class="hero-actions">
+		<label for="modeSelect">Mode</label>
+		<select id="modeSelect" @bind="_selectedMode">
+			<option value="Single">Single</option>
+			<option value="FullSheet">Full Sheet</option>
+		</select>
+		<button class="primary" @onclick="StartGameAsync">@(_isGameStarted ? "New Game" : "Start Game")</button>
+	</div>
+</section>
+
+<div class="status-panel">
+	<span>@GetStatusText()</span>
+	@if (!string.IsNullOrWhiteSpace(_noticeText))
+	{
+		<strong>@_noticeText</strong>
+	}
+</div>
+
+<section class="controls-row">
+	<div class="dice-row">
+		@foreach (var die in _engine.Dice)
+		{
+			bool canHold = _isGameStarted && _engine.RollCount > 0 && !_engine.AwaitingScoreSelection;
+			<button
+				class="die @(die.IsHeld ? "held" : "")"
+				disabled="@(!canHold)"
+				@onclick="() => ToggleHold(die.Id)">
+				@ToDieGlyph(die.Value)
+			</button>
+		}
+	</div>
+
+	<div class="action-row">
+		<button class="roll" disabled="@(!_isGameStarted || !_engine.CanRoll)" @onclick="RollDiceAsync">Roll</button>
+		<button class="undo" disabled="@(!_isGameStarted || !_engine.CanUndo)" @onclick="Undo">Undo</button>
+		<label class="pen">
+			Pen Color
+			<input type="color" @bind="_currentPenColorHex" />
+		</label>
+	</div>
+</section>
+
+<section class="table-wrap">
+	<table class="score-table">
+		<thead>
+			<tr>
+				<th>Category</th>
+				<th>Prob</th>
+				@for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
+				{
+					<th>G@(game + 1)</th>
+				}
+			</tr>
+		</thead>
+		<tbody>
+			<tr class="pace-row">
+				<td>Upper Pace</td>
+				<td>vs 3x target</td>
+				@for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
+				{
+					<td>@GetUpperPaceText(game)</td>
+				}
+			</tr>
+
+			@foreach (var category in ScoreRules.ScoringCategories)
+			{
+				<tr>
+					<td>@ScoreRules.GetDisplayName(category)</td>
+					<td>@GetProbabilityText(category)</td>
+					@for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
+					{
+						var cell = _engine.Cards[game].Scores[category];
+						bool canSelect = _isGameStarted && _engine.CanSelectCategory(game, category);
+						bool isValid = IsCategoryCurrentlyValid(category, game);
+						<td>
+							<button
+								class="score-btn @GetScoreClass(cell, isValid)"
+								style="@GetScoreButtonStyle(cell)"
+								disabled="@(!canSelect)"
+								@onclick="() => ApplyScoreAsync(game, category)">
+								@cell.DisplayText
+							</button>
+						</td>
+					}
+				</tr>
+
+				@if (category == ScoreRules.UpperCategories.Last())
+				{
+					<tr class="separator-row"><td colspan="8"></td></tr>
+				}
+			}
+
+			<tr class="totals-row">
+				<td>Upper</td>
+				<td></td>
+				@for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
+				{
+					<td>@(_engine.Cards[game].UpperSubtotal?.ToString() ?? "--")</td>
+				}
+			</tr>
+			<tr class="totals-row">
+				<td>Lower</td>
+				<td></td>
+				@for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
+				{
+					<td>@(_engine.Cards[game].LowerSubtotal?.ToString() ?? "--")</td>
+				}
+			</tr>
+			<tr class="totals-row">
+				<td>Bonus</td>
+				<td></td>
+				@for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
+				{
+					<td>@(_engine.Cards[game].UpperBonus?.ToString() ?? "--")</td>
+				}
+			</tr>
+			<tr class="totals-row">
+				<td>Game Total</td>
+				<td></td>
+				@for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
+				{
+					<td>@(_engine.Cards[game].GameTotal?.ToString() ?? "--")</td>
+				}
+			</tr>
+			<tr class="totals-row highlight-total">
+				<td>Card Total</td>
+				<td></td>
+				<td>@GetCardTotalDisplay()</td>
+				@for (int game = 1; game < YahtzeeGameEngine.GameCount; game++)
+				{
+					<td></td>
+				}
+			</tr>
+		</tbody>
+	</table>
+</section>
+
+@if (_engine.Mode == GameMode.FullSheet && _engine.Cards.All(c => c.IsComplete))
+{
+	<section class="summary">
+		<h2>Full Sheet Complete</h2>
+		<ul>
+			@for (int i = 0; i < YahtzeeGameEngine.GameCount; i++)
+			{
+				var card = _engine.Cards[i];
+				<li>Game @(i + 1): U @(card.UpperSubtotal ?? 0), L @(card.LowerSubtotal ?? 0), B @(card.UpperBonus ?? 0), T @(card.GameTotal ?? 0)</li>
+			}
+		</ul>
+	</section>
+}
+
+@code {
+	private readonly YahtzeeGameEngine _engine = new();
+	private Dictionary<ScoreCategory, double> _probabilities = new();
+	private string _currentPenColorHex = "#1D2939";
+	private string _selectedMode = "Single";
+	private bool _isGameStarted;
+	private string _noticeText = string.Empty;
+
+	protected override void OnInitialized()
+	{
+		_engine.Reset(GameMode.Single);
+		_probabilities = ScoreRules.ScoringCategories.ToDictionary(c => c, _ => 0d);
+	}
+
+	private Task StartGameAsync()
+	{
+		var mode = _selectedMode == "FullSheet" ? GameMode.FullSheet : GameMode.Single;
+		_engine.Reset(mode);
+		_isGameStarted = true;
+		_noticeText = string.Empty;
+		RecalculateProbabilities();
+		return Task.CompletedTask;
+	}
+
+	private Task RollDiceAsync()
+	{
+		if (!_isGameStarted)
+		{
+			return Task.CompletedTask;
+		}
+
+		if (_engine.RollDice())
+		{
+			_noticeText = string.Empty;
+			RecalculateProbabilities();
+		}
+
+		return Task.CompletedTask;
+	}
+
+	private void ToggleHold(int dieId)
+	{
+		if (!_isGameStarted)
+		{
+			return;
+		}
+
+		_engine.ToggleHold(dieId);
+	}
+
+	private void Undo()
+	{
+		if (!_isGameStarted)
+		{
+			return;
+		}
+
+		if (_engine.Undo())
+		{
+			_noticeText = "Last score entry undone.";
+			RecalculateProbabilities();
+		}
+	}
+
+	private Task ApplyScoreAsync(int gameIndex, ScoreCategory category)
+	{
+		if (!_isGameStarted)
+		{
+			return Task.CompletedTask;
+		}
+
+		if (_engine.TryApplyScore(gameIndex, category, _currentPenColorHex, out bool wasScratch, out _, out bool wasYahtzee))
+		{
+			if (wasScratch)
+			{
+				_noticeText = "Recorded as scratch (X) because this category was invalid on roll 3.";
+			}
+			else if (wasYahtzee)
+			{
+				_noticeText = "Yahtzee! Pick any pen color for your next entry.";
+			}
+			else
+			{
+				_noticeText = string.Empty;
+			}
+
+			RecalculateProbabilities();
+		}
+
+		return Task.CompletedTask;
+	}
+
+	private void RecalculateProbabilities()
+	{
+		_probabilities = _isGameStarted && _engine.RollCount > 0
+			? _engine.CalculateProbabilities()
+			: ScoreRules.ScoringCategories.ToDictionary(c => c, _ => 0d);
+	}
+
+	private string GetStatusText()
+	{
+		if (!_isGameStarted)
+		{
+			return "Tap Start Game, then roll to begin.";
+		}
+
+		string modeText = _engine.Mode == GameMode.FullSheet ? "Full Sheet" : "Single";
+
+		return _engine.RollCount switch
+		{
+			0 => $"{modeText}: Roll to start your turn",
+			_ when _engine.AwaitingScoreSelection => "Roll 3 reached: choose any category",
+			_ => $"{modeText}: Roll {_engine.RollCount} of {YahtzeeGameEngine.RollsPerTurn}"
+		};
+	}
+
+	private bool IsCategoryCurrentlyValid(ScoreCategory category, int gameIndex)
+	{
+		var cell = _engine.Cards[gameIndex].Scores[category];
+		if (cell.IsFilled || _engine.RollCount <= 0)
+		{
+			return false;
+		}
+
+		int[] dice = _engine.Dice.Select(d => d.Value).ToArray();
+		var evaluation = ScoreRules.EvaluateCategory(category, dice);
+		return evaluation.IsValid;
+	}
+
+	private static string ToDieGlyph(int value)
+	{
+		return value switch
+		{
+			1 => "⚀",
+			2 => "⚁",
+			3 => "⚂",
+			4 => "⚃",
+			5 => "⚄",
+			6 => "⚅",
+			_ => "-"
+		};
+	}
+
+	private string GetProbabilityText(ScoreCategory category)
+	{
+		if (_engine.RollCount <= 0)
+		{
+			return string.Empty;
+		}
+
+		return _probabilities.TryGetValue(category, out double probability)
+			? probability.ToString("P1")
+			: string.Empty;
+	}
+
+	private string GetUpperPaceText(int gameIndex)
+	{
+		if (!_engine.IsCardEnabled(gameIndex))
+		{
+			return "--";
+		}
+
+		int pace = ScoreRules.UpperCategories.Sum(c => ScoreRules.GetUpperPaceDelta(_engine.Cards[gameIndex], c));
+		return pace > 0 ? $"+{pace}" : pace.ToString();
+	}
+
+	private string GetCardTotalDisplay()
+	{
+		bool showCardTotal = _engine.Mode == GameMode.Single
+			? _engine.Cards[0].IsComplete
+			: _engine.Cards.All(c => c.IsComplete);
+
+		if (!showCardTotal)
+		{
+			return "--";
+		}
+
+		int cardTotal = _engine.Cards.Sum(c => c.GameTotal ?? 0);
+		return cardTotal.ToString();
+	}
+
+	private static string GetScoreClass(ScoreCellState cell, bool isValid)
+	{
+		if (cell.IsFilled)
+		{
+			return "filled";
+		}
+
+		return isValid ? "valid" : "empty";
+	}
+
+	private static string GetScoreButtonStyle(ScoreCellState cell)
+	{
+		if (!cell.IsFilled)
+		{
+			return string.Empty;
+		}
+
+		string textColor = GetContrastingTextColor(cell.PenColorHex);
+		return $"background:{cell.PenColorHex};color:{textColor};";
+	}
+
+	private static string GetContrastingTextColor(string backgroundHex)
+	{
+		if (!TryParseHexColor(backgroundHex, out int r, out int g, out int b))
+		{
+			return "#ffffff";
+		}
+
+		double luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+		return luminance > 145 ? "#111827" : "#ffffff";
+	}
+
+	private static bool TryParseHexColor(string hex, out int r, out int g, out int b)
+	{
+		r = g = b = 0;
+		if (string.IsNullOrWhiteSpace(hex))
+		{
+			return false;
+		}
+
+		string cleaned = hex.TrimStart('#');
+		if (cleaned.Length != 6)
+		{
+			return false;
+		}
+
+		return int.TryParse(cleaned.AsSpan(0, 2), System.Globalization.NumberStyles.HexNumber, null, out r)
+			&& int.TryParse(cleaned.AsSpan(2, 2), System.Globalization.NumberStyles.HexNumber, null, out g)
+			&& int.TryParse(cleaned.AsSpan(4, 2), System.Globalization.NumberStyles.HexNumber, null, out b);
+	}
+}

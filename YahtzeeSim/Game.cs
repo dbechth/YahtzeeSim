@@ -164,12 +164,12 @@ namespace YahtzeeSim
 
                 return category switch
                 {
-                    "Aces" => counts[1] > 0,
-                    "Twos" => counts[2] > 0,
-                    "Threes" => counts[3] > 0,
-                    "Fours" => counts[4] > 0,
-                    "Fives" => counts[5] > 0,
-                    "Sixes" => counts[6] > 0,
+                    "Aces" => counts[1] >= 3,
+                    "Twos" => counts[2] >= 3,
+                    "Threes" => counts[3] >= 3,
+                    "Fours" => counts[4] >= 3,
+                    "Fives" => counts[5] >= 3,
+                    "Sixes" => counts[6] >= 3,
                     "Three of a Kind" => HasNOfAKind(dice, 3),
                     "Four of a Kind" => HasNOfAKind(dice, 4),
                     "Full House" => IsFullHouse(dice),
@@ -236,6 +236,8 @@ namespace YahtzeeSim
                 if (category == "Full House")
                 {
                     var counts = GetCounts(dice);
+
+                    // Find the two most frequent faces. firstFace becomes the "three", secondFace the "two".
                     int firstFace = 1;
                     int secondFace = 2;
 
@@ -252,9 +254,23 @@ namespace YahtzeeSim
                         }
                     }
 
+                    // Hold at most 3 of firstFace and at most 2 of secondFace.
+                    // This prevents getting stuck when holding e.g. four-of-a-kind + one other,
+                    // where nothing would be rerolled and the full house could never complete.
+                    int firstHeld = 0;
+                    int secondHeld = 0;
                     for (int i = 0; i < dice.Length; i++)
                     {
-                        hold[i] = dice[i] == firstFace || dice[i] == secondFace;
+                        if (dice[i] == firstFace && firstHeld < 3)
+                        {
+                            hold[i] = true;
+                            firstHeld++;
+                        }
+                        else if (dice[i] == secondFace && secondHeld < 2)
+                        {
+                            hold[i] = true;
+                            secondHeld++;
+                        }
                     }
                     return hold;
                 }
@@ -313,33 +329,122 @@ namespace YahtzeeSim
                 return hold;
             }
 
+            // Returns C(n, k) for small n — sufficient for up to 5 dice.
+            static double BinomCoeff(int n, int k)
+            {
+                if (k < 0 || k > n) return 0d;
+                if (k > n - k) k = n - k;
+                double result = 1d;
+                for (int i = 0; i < k; i++)
+                {
+                    result *= (n - i);
+                    result /= (i + 1);
+                }
+                return result;
+            }
+
+            // Computes the exact probability of accumulating at least `threshold` dice
+            // showing `targetFace` within `rolls` rolls, using a Markov chain over
+            // the number of matching dice held. This avoids Monte Carlo noise for
+            // upper section categories, ensuring symmetric inputs yield identical results.
+            static double UpperSectionExactProbability(int[] dice, int targetFace, int rolls, int threshold)
+            {
+                int initial = 0;
+                foreach (var d in dice)
+                    if (d == targetFace) initial++;
+
+                if (initial >= threshold) return 1d;
+                if (rolls == 0) return 0d;
+
+                // prob[c] = probability of currently holding exactly c matching dice
+                var prob = new double[6];
+                prob[initial] = 1d;
+
+                for (int roll = 0; roll < rolls; roll++)
+                {
+                    var next = new double[6];
+
+                    for (int c = 0; c < threshold; c++)
+                    {
+                        if (prob[c] == 0d) continue;
+
+                        int free = 5 - c; // number of dice being rerolled
+
+                        // New matches this roll follow Binomial(free, 1/6)
+                        for (int j = 0; j <= free; j++)
+                        {
+                            int newC = Math.Min(c + j, 5);
+                            double p = BinomCoeff(free, j) * Math.Pow(1.0 / 6.0, j) * Math.Pow(5.0 / 6.0, free - j);
+                            next[newC] += prob[c] * p;
+                        }
+                    }
+
+                    // Absorbing states (already at threshold) carry forward unchanged
+                    for (int c = threshold; c <= 5; c++)
+                        next[c] += prob[c];
+
+                    prob = next;
+                }
+
+                double success = 0d;
+                for (int c = threshold; c <= 5; c++)
+                    success += prob[c];
+                return success;
+            }
+
             double EstimateCategoryProbability(string category)
             {
+                // If no rolls are left, the result is already determined — return 1 if already complete, 0 if not.
                 if (rollsRemaining == 0)
                 {
                     return IsCategoryComplete(category, startingDice) ? 1d : 0d;
                 }
 
+                // If the starting dice already satisfy the category, every trial would succeed — short-circuit.
+                if (IsCategoryComplete(category, startingDice))
+                {
+                    return 1d;
+                }
+
+                // Upper section categories have an exact closed-form solution via Markov chain.
+                // Using this avoids Monte Carlo noise that would make symmetric categories
+                // (e.g. Twos and Threes with no matching dice) show different probabilities.
+                int upperFace = category switch
+                {
+                    "Aces" => 1, "Twos" => 2, "Threes" => 3,
+                    "Fours" => 4, "Fives" => 5, "Sixes" => 6,
+                    _ => 0
+                };
+                if (upperFace > 0)
+                {
+                    int threshold = category switch
+                    {
+                        "Aces" => 3, "Twos" => 3, "Threes" => 3,
+                        "Fours" => 3, "Fives" => 3, "Sixes" => 3,
+                        _ => 1
+                    };
+                    return UpperSectionExactProbability(startingDice, upperFace, rollsRemaining, threshold);
+                }
+
+                // Run a Monte Carlo simulation with 4000 trials to estimate the probability.
                 const int trials = 4000;
                 int successes = 0;
 
                 for (int trial = 0; trial < trials; trial++)
                 {
+                    // Start each trial with a fresh copy of the current dice values.
                     var simDice = (int[])startingDice.Clone();
 
-                    if (IsCategoryComplete(category, simDice))
-                    {
-                        successes++;
-                        continue;
-                    }
-
+                    // Simulate each remaining roll, using the hold strategy to keep beneficial dice.
                     for (int roll = 0; roll < rollsRemaining; roll++)
                     {
+                        // Stop rolling early if the category is already complete.
                         if (IsCategoryComplete(category, simDice))
                         {
                             break;
                         }
 
+                        // Determine which dice to keep, then reroll the rest randomly.
                         var hold = BuildHoldMask(category, simDice);
                         for (int i = 0; i < simDice.Length; i++)
                         {
@@ -350,15 +455,18 @@ namespace YahtzeeSim
                         }
                     }
 
+                    // After all rolls, check if the trial ended in success.
                     if (IsCategoryComplete(category, simDice))
                     {
                         successes++;
                     }
                 }
 
+                // Return the fraction of trials that succeeded as the estimated probability.
                 return (double)successes / trials;
             }
 
+            // Run the estimator for every category and store the results.
             foreach (var category in categories)
             {
                 result[category] = EstimateCategoryProbability(category);

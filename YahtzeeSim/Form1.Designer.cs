@@ -163,7 +163,8 @@
             // 
             // dicePanel
             // 
-            dicePanel.AutoSize = true;
+            dicePanel.AutoSize = false;
+            dicePanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             dicePanel.Controls.Add(diceControl1);
             dicePanel.Controls.Add(diceControl2);
             dicePanel.Controls.Add(diceControl3);
@@ -173,12 +174,14 @@
             dicePanel.Name = "dicePanel";
             dicePanel.Size = new Size(540, 106);
             dicePanel.TabIndex = 1;
+            dicePanel.WrapContents = false;
+            dicePanel.Padding = new Padding(0, 3, 0, 3);
             // 
             // diceControl1
             // 
             diceControl1.DiceValue = 1;
             diceControl1.Location = new Point(3, 3);
-            diceControl1.Margin = new Padding(3);
+            diceControl1.Margin = new Padding(3, 0, 3, 0);
             diceControl1.Name = "diceControl1";
             diceControl1.Size = new Size(100, 100);
             diceControl1.TabIndex = 6;
@@ -188,7 +191,7 @@
             // 
             diceControl2.DiceValue = 1;
             diceControl2.Location = new Point(109, 3);
-            diceControl2.Margin = new Padding(3);
+            diceControl2.Margin = new Padding(3, 0, 3, 0);
             diceControl2.Name = "diceControl2";
             diceControl2.Size = new Size(100, 100);
             diceControl2.TabIndex = 7;
@@ -198,7 +201,7 @@
             // 
             diceControl3.DiceValue = 1;
             diceControl3.Location = new Point(215, 3);
-            diceControl3.Margin = new Padding(3);
+            diceControl3.Margin = new Padding(3, 0, 3, 0);
             diceControl3.Name = "diceControl3";
             diceControl3.Size = new Size(100, 100);
             diceControl3.TabIndex = 8;
@@ -208,7 +211,7 @@
             // 
             diceControl4.DiceValue = 1;
             diceControl4.Location = new Point(321, 3);
-            diceControl4.Margin = new Padding(3);
+            diceControl4.Margin = new Padding(3, 0, 3, 0);
             diceControl4.Name = "diceControl4";
             diceControl4.Size = new Size(100, 100);
             diceControl4.TabIndex = 9;
@@ -218,7 +221,7 @@
             // 
             diceControl5.DiceValue = 1;
             diceControl5.Location = new Point(427, 3);
-            diceControl5.Margin = new Padding(3);
+            diceControl5.Margin = new Padding(3, 0, 3, 0);
             diceControl5.Name = "diceControl5";
             diceControl5.Size = new Size(100, 100);
             diceControl5.TabIndex = 10;
