@@ -1,1 +1,53 @@
-/YahtzeeSim/bin/Debug/net8.0-windows
+# Default to ignoring everything, then allow only source/deployment files.
+*
+
+# Allow directory traversal so unignore rules can apply.
+!*/
+
+# Repository and deployment metadata.
+!.gitignore
+!README.md
+!TODO.md
+!YahtzeeSim.sln
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
+!scripts/
+!scripts/*.ps1
+
+# Keep source and project files.
+!**/*.sln
+!**/*.csproj
+!**/*.props
+!**/*.targets
+!**/*.cs
+!**/*.razor
+!**/*.css
+!**/*.html
+!**/*.js
+!**/*.json
+!**/*.webmanifest
+!**/*.xaml
+!**/*.resx
+!**/*.md
+!**/*.xml
+!**/*.plist
+!**/*.manifest
+!**/*.appxmanifest
+!**/*.png
+!**/*.svg
+
+# Always ignore generated artifacts and local IDE state.
+**/bin/**
+**/obj/**
+.vs/**
+**/*.user
+**/*.suo
+**/*.cache
+**/*.pdb
+**/*.dll
+**/*.exe
+**/*.deps.json
+**/*.runtimeconfig.json
+**/*.nupkg
+**/*.snupkg
