@@ -24,6 +24,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+        run: |
+          set -euo pipefail
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_PAGES_PROJECT_NAME; do
+            value="${!name:-}"
+            if [ -z "$value" ]; then
+              echo "Missing required GitHub secret: $name"
+              exit 1
+            fi
+          done
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -33,10 +49,8 @@ jobs:
         run: dotnet publish ${{ env.WEB_PROJECT }} -c Release
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
-          directory: ${{ env.PUBLISH_DIR }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy ${{ env.PUBLISH_DIR }} --project-name ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch main

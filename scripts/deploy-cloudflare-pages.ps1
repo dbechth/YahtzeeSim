@@ -32,6 +32,6 @@ Write-Host "Publishing Blazor app..."
 dotnet publish $webProject -c Release
 
 Write-Host "Deploying to Cloudflare Pages project '$ProjectName'..."
-npx wrangler pages deploy $publishRoot --project-name $ProjectName --branch $Branch
+npx -y wrangler pages deploy $publishRoot --project-name $ProjectName --branch $Branch
 
 Write-Host "Deployment complete."

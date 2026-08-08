@@ -46,6 +46,13 @@ This repository now includes GitHub Actions deployment for Cloudflare Pages:
 	- `CLOUDFLARE_PAGES_PROJECT_NAME`
 3. Ensure your default branch is `main` (or update the workflow trigger branch).
 
+Recommended API token permissions:
+
+- Account -> Cloudflare Pages -> Edit
+- Account Resources -> Include -> Your account
+
+Use account-scoped token permissions (not zone-only permissions).
+
 ### One-Click Deploy After Setup
 
 1. Open GitHub Actions.
@@ -53,6 +60,17 @@ This repository now includes GitHub Actions deployment for Cloudflare Pages:
 3. Click Run workflow.
 
 That is your one-click deployment flow after initial setup.
+
+### Troubleshooting 403 Authentication Error
+
+If GitHub Actions fails with Cloudflare API 403 and code 10000:
+
+1. Re-create `CLOUDFLARE_API_TOKEN` with `Cloudflare Pages:Edit` on the correct account.
+2. Verify `CLOUDFLARE_ACCOUNT_ID` is the account ID (not zone ID).
+3. Verify `CLOUDFLARE_PAGES_PROJECT_NAME` exactly matches your Pages project name.
+4. Confirm secrets are added in the same GitHub repository that runs the workflow.
+
+Note: Node deprecation warnings are not the root cause of this failure; the 403 is an auth/permissions mismatch.
 
 ### Local Fallback Deploy (Optional)
 
