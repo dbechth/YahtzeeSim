@@ -69,11 +69,27 @@ jobs:
             echo "Cloudflare project lookup failed."
             echo "This usually means the account id and project name do not belong together, or the project name secret is not exact."
 
+            echo "Lookup API errors/messages:"
+            python -c "import json,sys; d=json.loads(sys.stdin.read()); print('errors=', d.get('errors', [])); print('messages=', d.get('messages', []))" <<< "$project_response" || true
+
             echo "Available Pages projects in this account:"
             list_response=$(curl -sS \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects")
+
+            list_success=$(python -c "import json,sys; print(str(json.loads(sys.stdin.read()).get('success', False)).lower())" <<< "$list_response")
+            if [ "$list_success" != "true" ]; then
+              echo "List API errors/messages:"
+              python -c "import json,sys; d=json.loads(sys.stdin.read()); print('errors=', d.get('errors', [])); print('messages=', d.get('messages', []))" <<< "$list_response" || true
+            fi
+
+            project_count=$(python -c "import json,sys; data=json.loads(sys.stdin.read()); print(len(data.get('result', [])))" <<< "$list_response")
             python -c "import json,sys; data=json.loads(sys.stdin.read()); [print(p.get('name','')) for p in data.get('result',[]) if p.get('name')]" <<< "$list_response" || true
+
+            if [ "$project_count" = "0" ]; then
+              echo "No Pages projects were found in this account."
+              echo "Create one in Cloudflare Dashboard: Workers & Pages -> Create -> Pages -> Connect to Git."
+            fi
 
             echo "Set CLOUDFLARE_PAGES_PROJECT_NAME to one of the names above."
             exit 1
@@ -85,4 +101,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.120.0"
-          command: pages deploy ${{ env.PUBLISH_DIR }} --project-name ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch main --commit-dirty=true
+          command: pages deploy ${{ env.PUBLISH_DIR }} --project-name ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }} --commit-dirty=true

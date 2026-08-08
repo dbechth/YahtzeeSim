@@ -62,6 +62,12 @@ Use account-scoped token permissions (not zone-only permissions).
 
 That is your one-click deployment flow after initial setup.
 
+Important:
+
+- Use your main Pages project URL (for example `your-project.pages.dev`) when sharing.
+- Do not share temporary deployment preview links.
+- This workflow deploys to production so your primary Pages URL stays stable.
+
 ### Troubleshooting 403 Authentication Error
 
 If GitHub Actions fails with Cloudflare API 403 and code 10000:

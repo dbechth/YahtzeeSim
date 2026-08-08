@@ -1,6 +1,6 @@
 {
-  "name": "Yahtzee Family Edition",
-  "short_name": "Yahtzee",
+  "name": "YahtzeeSim",
+  "short_name": "YahtzeeSim",
   "id": "./",
   "start_url": "./",
   "display": "standalone",
