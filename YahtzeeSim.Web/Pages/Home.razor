@@ -79,7 +79,7 @@
                         @for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
                         {
                             var cell = _engine.Cards[game].Scores[category];
-                            bool enabled = _isGameStarted && _engine.CanSelectCategory(game, category);
+                            bool enabled = CanAttemptScore(game, cell);
                             bool isValid = IsCategoryCurrentlyValid(category, game);
                             <td>
                                 <button
@@ -357,6 +357,14 @@
         }
 
         return Task.CompletedTask;
+    }
+
+    private bool CanAttemptScore(int gameIndex, ScoreCellState cell)
+    {
+        return _isGameStarted
+            && _engine.RollCount > 0
+            && _engine.IsCardEnabled(gameIndex)
+            && !cell.IsFilled;
     }
 
     private void RefreshAll(bool recalculateProbabilities)
