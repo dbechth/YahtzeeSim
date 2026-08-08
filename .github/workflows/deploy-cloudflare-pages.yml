@@ -48,9 +48,41 @@ jobs:
       - name: Publish Blazor WebAssembly
         run: dotnet publish ${{ env.WEB_PROJECT }} -c Release
 
+      - name: Validate Cloudflare project exists
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+        run: |
+          set -euo pipefail
+
+          echo "Checking Pages project '${CLOUDFLARE_PAGES_PROJECT_NAME}' in account '${CLOUDFLARE_ACCOUNT_ID}'..."
+
+          project_response=$(curl -sS \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${CLOUDFLARE_PAGES_PROJECT_NAME}")
+
+          project_success=$(python -c "import json,sys; print(str(json.loads(sys.stdin.read()).get('success', False)).lower())" <<< "$project_response")
+
+          if [ "$project_success" != "true" ]; then
+            echo "Cloudflare project lookup failed."
+            echo "This usually means the account id and project name do not belong together, or the project name secret is not exact."
+
+            echo "Available Pages projects in this account:"
+            list_response=$(curl -sS \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects")
+            python -c "import json,sys; data=json.loads(sys.stdin.read()); [print(p.get('name','')) for p in data.get('result',[]) if p.get('name')]" <<< "$list_response" || true
+
+            echo "Set CLOUDFLARE_PAGES_PROJECT_NAME to one of the names above."
+            exit 1
+          fi
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ${{ env.PUBLISH_DIR }} --project-name ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch main
+          wranglerVersion: "4.120.0"
+          command: pages deploy ${{ env.PUBLISH_DIR }} --project-name ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch main --commit-dirty=true

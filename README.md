@@ -45,6 +45,7 @@ This repository now includes GitHub Actions deployment for Cloudflare Pages:
 	- `CLOUDFLARE_ACCOUNT_ID`
 	- `CLOUDFLARE_PAGES_PROJECT_NAME`
 3. Ensure your default branch is `main` (or update the workflow trigger branch).
+4. For `CLOUDFLARE_PAGES_PROJECT_NAME`, use the exact Pages project name from Cloudflare (case-sensitive).
 
 Recommended API token permissions:
 
@@ -71,6 +72,12 @@ If GitHub Actions fails with Cloudflare API 403 and code 10000:
 4. Confirm secrets are added in the same GitHub repository that runs the workflow.
 
 Note: Node deprecation warnings are not the root cause of this failure; the 403 is an auth/permissions mismatch.
+
+If GitHub Actions fails with code 8000007 (Project not found):
+
+1. `CLOUDFLARE_PAGES_PROJECT_NAME` is not an exact match for an existing Pages project in that account.
+2. `CLOUDFLARE_ACCOUNT_ID` points to a different account than the one that owns the project.
+3. Re-run the workflow and use the "Validate Cloudflare project exists" step output to see available project names.
 
 ### Local Fallback Deploy (Optional)
 
