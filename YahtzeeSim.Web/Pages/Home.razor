@@ -78,15 +78,17 @@
                         <td class="prob-cell">@GetProbabilityText(category)</td>
                         @for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
                         {
+                            var gameIndex = game;
+                            var scoreCategory = category;
                             var cell = _engine.Cards[game].Scores[category];
-                            bool enabled = CanAttemptScore(game, cell);
-                            bool isValid = IsCategoryCurrentlyValid(category, game);
+                            bool enabled = CanAttemptScore(gameIndex, cell);
+                            bool isValid = IsCategoryCurrentlyValid(scoreCategory, gameIndex);
                             <td>
                                 <button
                                     class="score-btn @GetScoreClass(cell, isValid)"
                                     style="@GetScoreButtonStyle(cell, enabled)"
                                     disabled="@(!enabled)"
-                                    @onclick="() => ApplyScoreAsync(game, category)">
+                                    @onclick="() => ApplyScoreAsync(gameIndex, scoreCategory)">
                                     @cell.DisplayText
                                 </button>
                             </td>
