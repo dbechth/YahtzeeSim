@@ -36,6 +36,32 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script>
+        const swReloadGuardKey = 'yahtzeesim-sw-reload-once';
+
+        function getSwReloadGuard() {
+            try {
+                return sessionStorage.getItem(swReloadGuardKey) === '1';
+            } catch {
+                return false;
+            }
+        }
+
+        function setSwReloadGuard() {
+            try {
+                sessionStorage.setItem(swReloadGuardKey, '1');
+            } catch {
+                // Ignore storage failures.
+            }
+        }
+
+        function clearSwReloadGuard() {
+            try {
+                sessionStorage.removeItem(swReloadGuardKey);
+            } catch {
+                // Ignore storage failures.
+            }
+        }
+
         window.__yahtzeeSimResetApp = async function () {
             try {
                 if ('serviceWorker' in navigator) {
@@ -71,15 +97,25 @@
                     });
                 });
 
+                if (registration.waiting && navigator.serviceWorker.controller) {
+                    registration.waiting.postMessage('SKIP_WAITING');
+                }
+
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (getSwReloadGuard()) {
+                        return;
+                    }
+
+                    setSwReloadGuard();
                     window.location.reload();
                 });
-
-                registration.update();
             }).catch(() => {
                 // If registration fails, the app can still run online without offline support.
             });
         }
+
+        // Clear the one-time reload guard after startup settles.
+        setTimeout(clearSwReloadGuard, 10000);
     </script>
 </body>
 
