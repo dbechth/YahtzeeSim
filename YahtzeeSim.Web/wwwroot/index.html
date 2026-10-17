@@ -36,32 +36,6 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script>
-        const swReloadGuardKey = 'yahtzeesim-sw-reload-once';
-
-        function getSwReloadGuard() {
-            try {
-                return sessionStorage.getItem(swReloadGuardKey) === '1';
-            } catch {
-                return false;
-            }
-        }
-
-        function setSwReloadGuard() {
-            try {
-                sessionStorage.setItem(swReloadGuardKey, '1');
-            } catch {
-                // Ignore storage failures.
-            }
-        }
-
-        function clearSwReloadGuard() {
-            try {
-                sessionStorage.removeItem(swReloadGuardKey);
-            } catch {
-                // Ignore storage failures.
-            }
-        }
-
         window.__yahtzeeSimResetApp = async function () {
             try {
                 if ('serviceWorker' in navigator) {
@@ -82,40 +56,24 @@
             return false;
         };
 
+        // Reliability mode: do not register a service worker. Remove old workers/caches
+        // so previously installed offline shells cannot break startup on Android.
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js').then(registration => {
-                registration.addEventListener('updatefound', () => {
-                    const installingWorker = registration.installing;
-                    if (!installingWorker) {
-                        return;
-                    }
-
-                    installingWorker.addEventListener('statechange', () => {
-                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            installingWorker.postMessage('SKIP_WAITING');
-                        }
-                    });
-                });
-
-                if (registration.waiting && navigator.serviceWorker.controller) {
-                    registration.waiting.postMessage('SKIP_WAITING');
-                }
-
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (getSwReloadGuard()) {
-                        return;
-                    }
-
-                    setSwReloadGuard();
-                    window.location.reload();
-                });
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                return Promise.all(registrations.map(r => r.unregister()));
             }).catch(() => {
-                // If registration fails, the app can still run online without offline support.
+                // Ignore cleanup failures.
             });
         }
 
-        // Clear the one-time reload guard after startup settles.
-        setTimeout(clearSwReloadGuard, 10000);
+        if ('caches' in window) {
+            caches.keys().then(keys => {
+                const offlineKeys = keys.filter(k => k.startsWith('offline-cache-'));
+                return Promise.all(offlineKeys.map(k => caches.delete(k)));
+            }).catch(() => {
+                // Ignore cache cleanup failures.
+            });
+        }
     </script>
 </body>
 
