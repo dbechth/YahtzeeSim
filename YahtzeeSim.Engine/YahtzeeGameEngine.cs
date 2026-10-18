@@ -1,4 +1,4 @@
-﻿namespace YahtzeeSim.Engine;
+namespace YahtzeeSim.Engine;
 
 public sealed class YahtzeeGameEngine
 {
@@ -12,13 +12,11 @@ public sealed class YahtzeeGameEngine
     public List<DieState> Dice { get; private set; } = [];
     public List<GameCardState> Cards { get; private set; } = [];
     public GameMode Mode { get; private set; } = GameMode.Single;
-    public int ActiveCardIndex { get; private set; }
     public int RollCount { get; private set; }
 
     public bool AwaitingScoreSelection => RollCount >= RollsPerTurn;
     public bool CanRoll => !AwaitingScoreSelection && !IsGameComplete;
     public bool CanUndo => _undoSnapshot != null;
-    public bool IsCurrentCardComplete => Cards[ActiveCardIndex].IsComplete;
     public bool IsGameComplete => Mode == GameMode.Single
         ? Cards[0].IsComplete
         : Cards.All(c => c.IsComplete);
@@ -31,7 +29,6 @@ public sealed class YahtzeeGameEngine
     public void Reset(GameMode mode)
     {
         Mode = mode;
-        ActiveCardIndex = 0;
         RollCount = 0;
         _undoSnapshot = null;
 
@@ -224,7 +221,6 @@ public sealed class YahtzeeGameEngine
         return new GameEngineSnapshot
         {
             RollCount = RollCount,
-            ActiveCardIndex = ActiveCardIndex,
             Mode = Mode,
             Dice = Dice.Select(d => new DieState { Id = d.Id, Value = d.Value, IsHeld = d.IsHeld }).ToList(),
             Cards = Cards.Select(c => c.Clone()).ToList()
@@ -234,7 +230,6 @@ public sealed class YahtzeeGameEngine
     private void RestoreSnapshot(GameEngineSnapshot snapshot)
     {
         RollCount = snapshot.RollCount;
-        ActiveCardIndex = snapshot.ActiveCardIndex;
         Mode = snapshot.Mode;
         Dice = snapshot.Dice.Select(d => new DieState { Id = d.Id, Value = d.Value, IsHeld = d.IsHeld }).ToList();
         Cards = snapshot.Cards.Select(c => c.Clone()).ToList();
