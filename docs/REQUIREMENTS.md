@@ -71,7 +71,7 @@ Source links point to the file that implements the behaviour.
 | SW-TRN-07 | A category that is valid for the current dice shall score its value and end the turn, at any roll. A valid category can never be scratched. Choosing a category that is not valid shall ask the player to confirm a scratch (SW-TRN-08); declining leaves the state unchanged. | `GetPickStatus`, `TryApplyScore` | UR-03 | ✅ |
 | SW-TRN-08 | After at least one roll, a confirmed scratch of an unfilled, not-valid cell shall be recorded as value 0, shown "X", and end the turn. After the third roll the player must score or scratch. | `TryScratch` | UR-03 | ✅ |
 | SW-TRN-09 | After a score is applied the turn shall reset: roll count 0, dice cleared, holds cleared. | `StartNextTurn` | UR-01 | ✅ |
-| SW-TRN-10 | Held dice shall persist across rolls within a turn and be visibly distinguished. | engine + both UIs | UR-02 | ✅ (TODO.md says "hold is broken"; no defect reproduced from code review – verify on device) |
+| SW-TRN-10 | Held dice shall persist across rolls within a turn and be visibly distinguished. | engine + both UIs | UR-02 | ✅ (TODO.md said "hold is broken"; verified working in the browser: held dice keep their values across rolls and are highlighted) |
 | SW-TRN-11 | When every card in play is complete, Roll shall be disabled. | `IsGameComplete`, `CanRoll` | UR-01 | ✅ |
 
 ### 3.3 Scoring, totals and pace (SCR)
@@ -102,7 +102,7 @@ Source links point to the file that implements the behaviour.
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
-| SW-PRB-01 | A "Prob" column shall show, for each of the 13 categories, the chance of completing it given current dice and rolls remaining, formatted as a percentage with one decimal; blank before the first roll of a turn. | [ProbabilityCalculator.cs](../YahtzeeSim.Engine/ProbabilityCalculator.cs) | UR-06 | ✅ |
+| SW-PRB-01 | An "Odds" column shall show, for each of the 13 categories, the chance of completing it given current dice and rolls remaining, formatted as a percentage with one decimal; blank before the first roll of a turn. | [ProbabilityCalculator.cs](../YahtzeeSim.Engine/ProbabilityCalculator.cs) | UR-06 | ✅ |
 | SW-PRB-02 | With no rolls remaining the probability shall be 100% if the category is already satisfied, else 0%; if already satisfied with rolls left, 100%. | `EstimateProbability` | UR-06 | ✅ |
 | SW-PRB-03 | For upper categories "complete" shall mean ≥3 of the face, and the probability shall be computed exactly (Markov chain, holding all matching dice). | `UpperSectionExactProbability` | UR-06 | ✅ (TODO.md: upper = three-of-a-kind probability) |
 | SW-PRB-04 | For lower categories the probability shall be estimated by Monte-Carlo (4 000 trials) using a greedy per-category hold strategy and a fixed random seed, so the same dice, holds and rolls remaining always give the same figures. | `MonteCarloEstimate`, `BuildHoldMask` | UR-06 | ✅ |
@@ -140,7 +140,7 @@ Source links point to the file that implements the behaviour.
 | SW-UIW-04 | Feedback messages (scratch, Yahtzee, invalid) shall appear in a notice banner that is cleared on undo and on a new game. | `_noticeText` | UR-03 | ✅ |
 | SW-UIW-05 | Mode selection and pen colour shall use in-page modal overlays. | Home.razor | UR-01 | ✅ |
 | SW-UIW-06 | Dice buttons shall be disabled unless holding is allowed. | Home.razor | UR-02 | ✅ |
-| SW-UIW-07 | The layout shall adapt with CSS (`@media (max-width: 820px)`, clamp-based sizing). | Home.razor.css | UR-11 | ✅ |
+| SW-UIW-07 | The layout shall adapt with CSS (clamp-based sizing; see SW-UIW-09 for the landscape layout). | Home.razor.css | UR-11 | ✅ |
 | SW-UIW-08 | The scorecard shall use real-card layout and wording: "Upper Section" and "Lower Section" headings, a "Bonus 35 if 63+" label, a "Yahtzee Bonus" row of check marks, and the official box order and names. | Home.razor | UR-01 | ✅ |
 | SW-UIW-09 | On landscape screens at least 760 px wide (smallest target 1292×698), the dice/controls shall sit in a left column beside the score card, and the card's row height shall scale with viewport height so a full game can be played without scrolling. | Home.razor, Home.razor.css | UR-11 | ✅ |
 
@@ -151,7 +151,7 @@ Source links point to the file that implements the behaviour.
 | SW-PLT-01 | The product shall be delivered as one web-based solution (the Web PWA) running on Android, Windows and iPhone. The MAUI and WinForms projects shall be removed (history stays in git). Revisit if a single web solution proves not possible. | [YahtzeeSim.Web.csproj](../YahtzeeSim.Web/YahtzeeSim.Web.csproj) | UR-12 | 🟡 Done in code (MAUI and WinForms removed); device testing on Android and iPhone still needed |
 | SW-PLT-02 | The Web app shall be a Blazor WebAssembly (net9) static site with no server component. | [YahtzeeSim.Web.csproj](../YahtzeeSim.Web/YahtzeeSim.Web.csproj) | UR-12 | ✅ |
 | SW-PLT-03 | There shall be exactly one game engine: a class library `YahtzeeSim.Engine` (namespace `YahtzeeSim.Engine`) referenced by Web and the test project. No other copy of game logic shall exist. | YahtzeeSim.Web.csproj | UR-14 | ✅ |
-| SW-PLT-04 | The Web app shall publish a PWA manifest (standalone, portrait, 192/512 icons, theme colour) and Apple meta tags so it can be added to an iOS/Android home screen. | [manifest.webmanifest](../YahtzeeSim.Web/wwwroot/manifest.webmanifest), [index.html](../YahtzeeSim.Web/wwwroot/index.html) | UR-12 | ✅ |
+| SW-PLT-04 | The Web app shall publish a PWA manifest (standalone, any orientation, 192/512 icons, theme colour) and Apple meta tags so it can be added to an iOS/Android home screen. | [manifest.webmanifest](../YahtzeeSim.Web/wwwroot/manifest.webmanifest), [index.html](../YahtzeeSim.Web/wwwroot/index.html) | UR-12 | ✅ |
 | SW-PLT-05 | The Web app shall work offline once installed. A service worker shall cache the app shell and serve it network-first with a cached fallback, so users get the latest version when online. A stale or broken cache shall never block startup; "Reset app data" (SW-PLT-06) remains the recovery path. | index.html, [service-worker.published.js](../YahtzeeSim.Web/wwwroot/service-worker.published.js) | UR-13 | ✅ Verified on a published build: the app loads and resumes a saved game with the server stopped |
 | SW-PLT-06 | The Web app shall show an error bar with "Reload" and "Reset app data" (unregister workers, clear caches, reload). | index.html (`__yahtzeeSimResetApp`) | UR-13 | ✅ |
 | SW-PLT-07 | Game state shall be autosaved after every action. On launch the app shall offer to resume the saved game, and New Game shall clear it. Corrupt or incompatible saved data shall be discarded. | Web `PersistAsync` (localStorage keys `yahtzeesim.save`, `yahtzeesim.pen`), engine `Serialize`/`TryLoad` | UR-01 | ✅ |
