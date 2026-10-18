@@ -1,4 +1,4 @@
-﻿# YahtzeeSim – Reverse-Engineered Requirements
+# YahtzeeSim – Reverse-Engineered Requirements
 
 This document was reverse-engineered from the repository as it exists today. It records **what the code does**, groups that behaviour into
 **software requirements (SW-xxx)**, and maps every software requirement to a higher-level **user requirement (UR-xx)**.
@@ -9,12 +9,10 @@ A status column shows where the code meets, misses or disagrees with the intent 
 | Item | Description |
 |---|---|
 | Product | Solo Yahtzee scorecard/simulator with dice rolling, hold, scoring, odds guidance and a 6-card "Full Sheet" mode |
-| Reference front end | [YahtzeeSim.Maui](../YahtzeeSim.Maui) – best-functioning build, used on Android (also targets Windows, iOS, MacCatalyst) |
-| Universal front end | [YahtzeeSim.Web](../YahtzeeSim.Web) – Blazor WebAssembly PWA, static-hosted on Cloudflare Pages, installable on iPhone via "Add to Home Screen" |
-| Shared engine | [YahtzeeSim.Maui/Engine](../YahtzeeSim.Maui/Engine) – compiled into Web through a linked `<Compile Include>`; no UI dependencies |
-| Legacy | [YahtzeeSim](../YahtzeeSim) – original WinForms prototype (net8). Only dice/roll/undo; no scoring flow. Superseded by MAUI/Web |
+| Front end | [YahtzeeSim.Web](../YahtzeeSim.Web) – Blazor WebAssembly PWA, static-hosted on Cloudflare Pages, installable via "Add to Home Screen". The only front end (decided): MAUI and WinForms are to be removed |
+| Shared engine | [YahtzeeSim.Engine](../YahtzeeSim.Engine) – the single game engine (decided), a class library with no UI dependencies, referenced by Web and the test project, namespace `YahtzeeSim.Engine`. Today it still lives in `YahtzeeSim.Maui/Engine` and is linked into Web |
 
-Status legend: ✅ Implemented · 🟡 Partial · ❌ Not implemented · ↔ Divergent between MAUI and Web
+Status legend: ✅ Implemented · 🟡 Partial · ❌ Not implemented. "Decided, not yet built" means the behaviour is agreed but the code does not do it yet.
 
 Terminology: **Card** = one 13-category scoresheet (a "game" column G1–G6). **Turn** = up to three rolls ending in one score entry.
 **Scratch** = a category sacrificed with a 0, shown as **X**. **Full Sheet** = six cards played together.
@@ -40,7 +38,7 @@ Terminology: **Card** = one 13-category scoresheet (a "game" column G1–G6). **
 
 ## 3. Software requirements
 
-Source links point to the file that implements the behaviour. "MAUI" = [MainPage.xaml.cs](../YahtzeeSim.Maui/MainPage.xaml.cs) / [MainPage.xaml](../YahtzeeSim.Maui/MainPage.xaml);
+Source links point to the file that implements the behaviour (engine links point to `YahtzeeSim.Maui/Engine` until the engine moves to `YahtzeeSim.Engine`).
 "Web" = [Home.razor](../YahtzeeSim.Web/Pages/Home.razor) / [Home.razor.css](../YahtzeeSim.Web/Pages/Home.razor.css).
 
 ### 3.1 Game rules and card model (RUL)
@@ -57,7 +55,7 @@ Source links point to the file that implements the behaviour. "MAUI" = [MainPage
 | SW-RUL-08 | Chance shall always be valid and score the sum of all dice. | `ScoreRules.EvaluateCategory` | UR-04 | ✅ |
 | SW-RUL-09 | A category cell on a card shall be fillable exactly once; a filled cell shall not be editable (except via Undo, SW-UND-02). | `YahtzeeGameEngine.TryApplyScore` | UR-01 | ✅ |
 | SW-RUL-10 | A card shall be complete when all 13 cells are filled (value or scratch). | `GameCardState.IsComplete` | UR-01 | ✅ |
-| SW-RUL-11 | **Single mode only.** If the Yahtzee box holds 50, each further Yahtzee on the card shall earn a +100 bonus, added to the game total and shown on the card. The roll shall then be placed by the Joker rules: (1) the matching Upper box if open; (2) otherwise any open Lower box, where Full House, Small Straight and Large Straight score 25 / 30 / 40; (3) otherwise a 0 in any open Upper box. If the Yahtzee box holds 0, no bonus is awarded but Joker placement still applies. **Full Sheet mode** applies neither the bonus nor the Joker rules. | – | UR-04 | ❌ Decided, not yet built |
+| SW-RUL-11 | **Single mode only.** If the Yahtzee box holds 50, each further Yahtzee on the card shall earn a +100 bonus, recorded as one check mark per extra Yahtzee in a "Yahtzee Bonus" row of the Lower Section, as on a real scoresheet. Each check mark is worth 100 and is included in the lower subtotal and game total. Undo shall restore the check count. The roll shall then be placed by the Joker rules: (1) the matching Upper box if open; (2) otherwise any open Lower box, where Full House, Small Straight and Large Straight score 25 / 30 / 40; (3) otherwise a 0 in any open Upper box. If the Yahtzee box holds 0, no bonus is awarded but Joker placement still applies. **Full Sheet mode** applies neither the bonus nor the Joker rules. | – | UR-04 | ❌ Decided, not yet built |
 | SW-RUL-12 | Categories shall have human-readable display names ("Three of a Kind", etc.). | `ScoreRules.GetDisplayName` | UR-01 | ✅ |
 
 ### 3.2 Turn flow (TRN)
@@ -85,20 +83,20 @@ Source links point to the file that implements the behaviour. "MAUI" = [MainPage
 | SW-SCR-03 | Upper subtotal, lower subtotal, upper bonus and game total shall be computed only when the card is complete; before that they shall be unavailable and displayed as "--". | [GameCardState.cs](../YahtzeeSim.Maui/Engine/GameCardState.cs) | UR-10 | ✅ (TODO.md: "calculated automatically at game end") |
 | SW-SCR-04 | The upper bonus shall be 35 when the upper subtotal (excluding bonus) is ≥ 63, otherwise 0. | `GameCardState` | UR-10 | ✅ |
 | SW-SCR-05 | Game total shall equal upper subtotal + lower subtotal + bonus. | `GameCardState.GameTotal` | UR-10 | ✅ |
-| SW-SCR-06 | A "Card Total" shall equal the sum of game totals and shall be shown only when all cards in play are complete (Single: card 1; Full Sheet: all six), in the G1 column of the Card Total row. | MAUI `BuildScoreGrid`, Web `GetCardTotalDisplay` | UR-05 | ✅ |
+| SW-SCR-06 | A "Card Total" shall equal the sum of game totals and shall be shown only when all cards in play are complete (Single: card 1; Full Sheet: all six), in the G1 column of the Card Total row. | Web `GetCardTotalDisplay` | UR-05 | ✅ |
 | SW-SCR-07 | An "Upper Pace" row shall show, per card, Σ((count − 3) × face) over filled upper cells (scratch counts as −3 × face), with "+" for positive values, and "--" for disabled cards. | `ScoreRules.GetUpperPaceDelta` | UR-06 | ✅ |
-| SW-SCR-08 | Per card, the system shall project the upper subtotal as the filled upper cells plus 3 × face for every blank upper cell, and show "on pace" when the projection is ≥ 63, otherwise "behind pace by N" (N = 63 − projection). In Full Sheet each card shows its own pace; which card the status line reports is still undefined (see §6). | – | UR-06 | ❌ Decided, not yet built (Upper Pace, SW-SCR-07, counts filled cells only) |
+| SW-SCR-08 | The Upper Pace figure shall be tracked for every game in both Single and Full Sheet modes. A blank upper cell counts as exactly three of its face, so the figure equals the projected upper subtotal minus 63 (≥ 0 means the 35-point bonus is on track). No further display is required. | `ScoreRules.GetUpperPaceDelta` | UR-06 | ✅ Covered by SW-SCR-07 (decided: keep the +/- number and colour tone as is) |
 
 ### 3.4 Game modes (MOD)
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
-| SW-MOD-01 | The app shall open in a not-started state: dice, Roll, Undo and score cells are disabled and the status line prompts "Tap New Game". | MAUI `OnAppearing`, Web `OnInitialized` | UR-01 | ✅ |
-| SW-MOD-02 | "New Game" shall ask for a mode (Single or Full Sheet) with a Cancel option, reset the engine, and then prompt for a pen colour. | MAUI `StartGameButton_Clicked`, Web `SelectGameMode` | UR-01, UR-05 | ✅ |
+| SW-MOD-01 | The app shall open in a not-started state: dice, Roll, Undo and score cells are disabled and the status line prompts "Tap New Game". | Web `OnInitialized` | UR-01 | ✅ |
+| SW-MOD-02 | "New Game" shall ask for a mode (Single or Full Sheet) with a Cancel option, reset the engine, and then prompt for a pen colour. | Web `SelectGameMode` | UR-01, UR-05 | ✅ |
 | SW-MOD-03 | New Game shall be available at any time and shall always ask "Abandon current game?" before discarding the current game. | same | UR-01 | 🟡 Decided, not yet built (no confirmation today) |
 | SW-MOD-04 | In Single mode only card G1 shall be enabled; G2–G6 columns remain visible but cannot be scored. | `IsCardEnabled` | UR-01, UR-05 | ✅ Disabled columns stay visible, greyed out (accepted by decision) |
 | SW-MOD-05 | In Full Sheet mode all six cards shall be enabled; each turn's dice may be scored to any unfilled cell on any card, in any order. | `IsCardEnabled`, `TryApplyScore` | UR-05 | ✅ |
-| SW-MOD-06 | When a Full Sheet completes, the app shall show a summary with per-card Upper, Lower, Bonus, Total and the series total. | MAUI `RefreshEndSummary`, Web summary panel | UR-05 | ✅ (no equivalent panel for Single) |
+| SW-MOD-06 | When a Full Sheet completes, the app shall show a summary with per-card Upper, Lower, Bonus, Total and the series total. | Web summary panel | UR-05 | ✅ (no equivalent panel for Single) |
 
 ### 3.5 Probability guidance (PRB)
 
@@ -108,7 +106,7 @@ Source links point to the file that implements the behaviour. "MAUI" = [MainPage
 | SW-PRB-02 | With no rolls remaining the probability shall be 100% if the category is already satisfied, else 0%; if already satisfied with rolls left, 100%. | `EstimateProbability` | UR-06 | ✅ |
 | SW-PRB-03 | For upper categories "complete" shall mean ≥3 of the face, and the probability shall be computed exactly (Markov chain, holding all matching dice). | `UpperSectionExactProbability` | UR-06 | ✅ (TODO.md: upper = three-of-a-kind probability) |
 | SW-PRB-04 | For lower categories the probability shall be estimated by Monte-Carlo (4 000 trials) using a greedy per-category hold strategy and a fixed random seed, so the same dice, holds and rolls remaining always give the same figures. | `MonteCarloEstimate`, `BuildHoldMask` | UR-06 | 🟡 Decided, not yet built (unseeded today, so figures jitter; greedy strategy is not optimal) |
-| SW-PRB-05 | Probabilities shall be recalculated after a roll, an undo or a hold toggle, and cleared after a score. | MAUI/Web `RefreshAll` | UR-06 | 🟡 Decided; today a hold toggle does not recalculate, so figures are stale until the next roll |
+| SW-PRB-05 | Probabilities shall be recalculated after a roll, an undo or a hold toggle, and cleared after a score. | Web `RefreshAll` | UR-06 | 🟡 Decided; today a hold toggle does not recalculate, so figures are stale until the next roll |
 | SW-PRB-06 | Probabilities shall be displayed for every category regardless of whether the cell is already filled on the relevant card. | `Calculate` | UR-06 | ✅ Accepted by decision (filled categories keep showing odds) |
 
 ### 3.6 Undo (UND)
@@ -123,41 +121,41 @@ Source links point to the file that implements the behaviour. "MAUI" = [MainPage
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
-| SW-PEN-01 | The default pen colour shall be `#1D2939`. | MAUI/Web `_currentPenColorHex` | UR-08 | ✅ |
+| SW-PEN-01 | The default pen colour shall be `#1D2939`. | Web `_currentPenColorHex` | UR-08 | ✅ |
 | SW-PEN-02 | The pen palette shall have 24 swatches (6 hues × 4 shades). | MainPage.xaml, `Home.razor` `PenColors` | UR-08 | ✅ (list duplicated in both UIs) |
 | SW-PEN-03 | A mandatory pen-colour picker shall be shown right after a new game starts. | `PromptForPenColorAsync` / `OpenColorPicker` | UR-08 | ✅ |
 | SW-PEN-04 | After a valid Yahtzee is scored, the picker shall be shown again with a "Keep Current" option. | `OnScoreClickedAsync` / `ApplyScoreAsync` | UR-08 | ✅ Confirmed by decision: the picker fires on scoring; the celebration fires on rolling (SW-CEL-01) |
 | SW-PEN-05 | The colour shall not be changeable at any other time (no other entry point). | UI | UR-08 | ✅ |
 | SW-PEN-06 | A filled cell shall render with its stored pen colour as background and a black/white text colour chosen by luminance. | `GetContrastingTextColor` | UR-08 | ✅ |
-| SW-CEL-01 | Rolling five of a kind shall show a full-screen splash/animation that dismisses itself after about 2 seconds or on tap. | MAUI `DisplayAlert("Yahtzee!")`; Web notice text | UR-09 | 🟡 Decided for Web (reference); today MAUI shows an alert and Web a text banner, both on scoring |
-| SW-CEL-02 | Recording a scratch shall inform the user that the category was recorded as X (stored as 0). | same | UR-03 | ↔ MAUI alert vs Web banner; Web is the reference |
+| SW-CEL-01 | Rolling five of a kind shall show a full-screen splash/animation that dismisses itself after about 2 seconds or on tap. | Web notice text | UR-09 | 🟡 Decided; today a text banner on scoring |
+| SW-CEL-02 | Recording a scratch shall inform the user that the category was recorded as X (stored as 0). | same | UR-03 | ✅ Web banner |
 
-### 3.8 MAUI user interface (UIM)
+### 3.8 MAUI user interface (UIM) – to be retired with MAUI
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
 | SW-UIM-01 | The page shall stack: top bar (title, status line, New Game), dice row, Roll/Undo row, scrollable score grid, end-of-game summary. | MainPage.xaml | UR-01 | ✅ |
 | SW-UIM-02 | The five dice shall be equal-width buttons showing Unicode glyphs ⚀–⚅, blank until rolled, held dice highlighted (orange, thick border); size scales with width (66–122 px). | `RefreshDice`, `ApplyDiceSizing` | UR-02 | ✅ |
 | SW-UIM-03 | Roll and Undo shall sit directly under the dice at an 80 % / 20 % width split, 56 px tall. | MainPage.xaml (`8*,2*`) | UR-11 | ✅ |
-| SW-UIM-04 | Pressing Roll shall blank non-held dice; releasing it shall perform the roll. | `RollButton_Pressed/Released` | UR-02 | ↔ Web rolls on click; Web is the reference, MAUI frozen |
+| SW-UIM-04 | Pressing Roll shall blank non-held dice; releasing it shall perform the roll. | `RollButton_Pressed/Released` | UR-02 | Web rolls on click (Web behaviour is the one kept) |
 | SW-UIM-05 | Roll shall be disabled unless a game is started and `CanRoll`; Undo disabled unless `CanUndo`. | `RefreshStatus` | UR-02 | ✅ |
 | SW-UIM-06 | The status line shall describe the state: not started, roll to start, "Roll n of 3 …", or "Roll 3 reached: pick any score cell". | `RefreshStatus` | UR-01 | ✅ |
 | SW-UIM-07 | The score grid shall have columns Category, Prob, G1–G6 with one button per cell; colours: valid-now = green, otherwise grey, filled = pen colour. | `BuildScoreGrid`, `AddScoreButton` | UR-03 | ✅ |
-| SW-UIM-08 | A score button shall be enabled only if `CanSelectCategory` (valid for current dice, or any unfilled cell after roll 3). | `AddScoreButton` | UR-03 | ↔ Web enables every unfilled cell once rolled; Web is the reference (SW-UIW-03) |
+| SW-UIM-08 | A score button shall be enabled only if `CanSelectCategory` (valid for current dice, or any unfilled cell after roll 3). | `AddScoreButton` | UR-03 | Superseded by SW-UIW-03 |
 | SW-UIM-09 | Mode selection shall use a native action sheet; the pen picker shall be a full-screen overlay. | `StartGameButton_Clicked`, `ColorPickerOverlay` | UR-01 | ✅ |
 | SW-UIM-10 | The layout shall adapt: fonts, dice and row heights scale with width; on screens narrower than 680 or shorter than 760 the grid scrolls vertically. | `OnSizeAllocated` | UR-11 | ✅ |
 | SW-UIM-11 | Score buttons shall be at least 38 px tall (row height 42–64 px). | `AddScoreButton`, `GetInteractiveRowHeight` | UR-11 | ✅ |
 | SW-UIM-12 | The grid shall show Upper, Lower, Bonus, Game Total rows per card, and a Card Total row, with a separator between upper and lower sections. | `BuildScoreGrid` | UR-10 | ✅ (TODO.md "real Yahtzee card look" not done) |
-| SW-UIM-13 | The Web scorecard shall use real-card layout and wording: "Upper Section" and "Lower Section" headings, a "Bonus 35 if 63+" label, and the official box order and names. | – | UR-01 | ❌ Decided, not yet built (Web is the reference; MAUI frozen) |
+| SW-UIM-13 | The Web scorecard shall use real-card layout and wording: "Upper Section" and "Lower Section" headings, a "Bonus 35 if 63+" label, and the official box order and names. | – | UR-01 | ❌ Decided, not yet built (Web only) |
 
 ### 3.9 Web user interface (UIW)
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
-| SW-UIW-01 | The single page `/` shall present the same structure as MAUI using HTML/CSS (table-based score grid), reusing the engine unchanged. | Home.razor | UR-12 | ✅ |
-| SW-UIW-02 | Roll shall show a "rolling" visual on pointer-down for non-held dice and roll on click; Roll/Undo use an 8fr/2fr grid. | `RollButtonPressed/ClickedAsync`, Home.razor.css | UR-11 | ↔ vs MAUI (release vs click); Web is the reference |
+| SW-UIW-01 | The single page `/` shall present the app using HTML/CSS (table-based score grid), reusing the engine unchanged. | Home.razor | UR-12 | ✅ |
+| SW-UIW-02 | Roll shall show a "rolling" visual on pointer-down for non-held dice and roll on click; Roll/Undo use an 8fr/2fr grid. | `RollButtonPressed/ClickedAsync`, Home.razor.css | UR-11 | ✅ |
 | SW-UIW-03 | Score buttons shall be enabled for any unfilled cell on an enabled card once rolled; picking a cell that is not valid shall ask to confirm a scratch (SW-TRN-07, SW-TRN-08). | `CanAttemptScore`, `ApplyScoreAsync` | UR-03 | 🟡 Decided; today an invalid pick before roll 3 shows a "not valid yet" banner |
-| SW-UIW-04 | Feedback messages (scratch, Yahtzee, invalid) shall appear in a notice banner that is cleared on undo and on a new game. | `_noticeText` | UR-03 | ↔ MAUI uses alerts; Web is the reference |
+| SW-UIW-04 | Feedback messages (scratch, Yahtzee, invalid) shall appear in a notice banner that is cleared on undo and on a new game. | `_noticeText` | UR-03 | ✅ |
 | SW-UIW-05 | Mode selection and pen colour shall use in-page modal overlays. | Home.razor | UR-01 | ✅ |
 | SW-UIW-06 | Dice buttons shall be disabled unless holding is allowed. | Home.razor | UR-02 | ✅ |
 | SW-UIW-07 | The layout shall adapt with CSS (`@media (max-width: 820px)`, clamp-based sizing). | Home.razor.css | UR-11 | ✅ |
@@ -166,9 +164,9 @@ Source links point to the file that implements the behaviour. "MAUI" = [MainPage
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
-| SW-PLT-01 | The product shall be delivered as one web-based solution (the Web PWA) running on Android, Windows and iPhone, and Web is the behavioural reference. MAUI (Android min API 21, Windows 10 1809+, iOS 15 / MacCatalyst 15; Tizen disabled) is frozen: no new features until a decision to retire it. Revisit if a single web solution proves not possible. | [YahtzeeSim.Maui.csproj](../YahtzeeSim.Maui/YahtzeeSim.Maui.csproj) | UR-12 | 🟡 Decided; Web is proven on iPhone/Android only after device testing |
+| SW-PLT-01 | The product shall be delivered as one web-based solution (the Web PWA) running on Android, Windows and iPhone. The MAUI and WinForms projects shall be removed (history stays in git). Revisit if a single web solution proves not possible. | [YahtzeeSim.Web.csproj](../YahtzeeSim.Web/YahtzeeSim.Web.csproj) | UR-12 | 🟡 Decided, not yet done (MAUI and WinForms are still in the repo); device testing on Android and iPhone still needed |
 | SW-PLT-02 | The Web app shall be a Blazor WebAssembly (net9) static site with no server component. | [YahtzeeSim.Web.csproj](../YahtzeeSim.Web/YahtzeeSim.Web.csproj) | UR-12 | ✅ |
-| SW-PLT-03 | The game engine shall be a single code base shared by MAUI and Web (linked source, namespace `YahtzeeSim.Maui.Engine`). | YahtzeeSim.Web.csproj | UR-14 | ✅ (UI logic is still duplicated) |
+| SW-PLT-03 | There shall be exactly one game engine: a class library `YahtzeeSim.Engine` (namespace `YahtzeeSim.Engine`) referenced by Web and the test project. No other copy of game logic shall exist. | YahtzeeSim.Web.csproj | UR-14 | 🟡 Decided, not yet done (engine lives in the MAUI folder and is linked into Web; WinForms has its own copy) |
 | SW-PLT-04 | The Web app shall publish a PWA manifest (standalone, portrait, 192/512 icons, theme colour) and Apple meta tags so it can be added to an iOS/Android home screen. | [manifest.webmanifest](../YahtzeeSim.Web/wwwroot/manifest.webmanifest), [index.html](../YahtzeeSim.Web/wwwroot/index.html) | UR-12 | ✅ |
 | SW-PLT-05 | The Web app shall work offline once installed. A service worker shall cache the app shell and serve it network-first with a cached fallback, so users get the latest version when online. A stale or broken cache shall never block startup; "Reset app data" (SW-PLT-06) remains the recovery path. | index.html, `service-worker*.js` | UR-13 | 🟡 Decided; today `index.html` unregisters workers and deletes `offline-cache-*` caches ("reliability mode"), so offline is unsupported |
 | SW-PLT-06 | The Web app shall show an error bar with "Reload" and "Reset app data" (unregister workers, clear caches, reload). | index.html (`__yahtzeeSimResetApp`) | UR-13 | ✅ |
@@ -211,12 +209,12 @@ Source links point to the file that implements the behaviour. "MAUI" = [MainPage
 Priority order (highest value for "getting the project back under control"):
 
 1. **Reintroduce offline support safely** (SW-PLT-05): restore the service worker with a network-first strategy and a cached fallback, keep "Reset app data" as the recovery path, and remove the "reliability mode" script that unregisters workers.
-2. **Make Web the single reference** (SW-PLT-01): MAUI is frozen, so the ↔ rows resolve to Web behaviour. Decide later whether to retire MAUI.
+2. **Remove MAUI and WinForms now and create `YahtzeeSim.Engine`** (SW-PLT-01, SW-PLT-03): move the engine into its own class library, rename the namespace, and update the solution, Web project, deploy workflow path filter and [README.md](../README.md).
 3. **Move UI-independent logic out of the pages.** The page code duplicates pen palette, status text, pace calculation, card-total logic and contrast colour. Extract an engine class library (referenced by both apps instead of linked source) and put shared presentation logic there.
 4. **Add an engine test project** covering every SW-RUL/TRN/SCR/UND row (these are pure and easily testable); then a CI build step.
-5. **Build the decided items** (rows marked "Decided, not yet built"): Single-mode Yahtzee bonus and Joker rules, scratch-with-confirmation, rolled-Yahtzee splash, bonus pace, seeded odds that update on hold, New Game confirmation, autosave/resume, real-card wording, performance check.
+5. **Build the decided items** (rows marked "Decided, not yet built"): Single-mode Yahtzee bonus and Joker rules, scratch-with-confirmation, rolled-Yahtzee splash, seeded odds that update on hold, New Game confirmation, autosave/resume, real-card wording, performance check.
 6. **Finish remaining TODO.md items** still open: see the rows above marked ❌ or 🟡.
-7. **Remove leftovers:** Blazor template files (`Counter.razor`, `Weather.razor`, `NavMenu.razor`, `sample-data/weather.json`), the `com.companyname.yahtzeesim.maui` application id, unused `ActiveCardIndex` in the engine, the WinForms project (and update [README.md](../README.md), which still lists it as a front end), and iOS/MacCatalyst/Tizen scaffolding if they will never ship.
+7. **Remove leftovers:** Blazor template files (`Counter.razor`, `Weather.razor`, `NavMenu.razor`, `sample-data/weather.json`), unused `ActiveCardIndex` in the engine.
 8. **Optional:** hide probabilities for filled categories (declined for now, SW-PRB-06).
 
 ## 6. Decisions and remaining open questions
@@ -229,8 +227,8 @@ Decided with the owner:
 | Scratching (SW-TRN-07/08) | Allowed after any roll, with a confirmation; a valid category always scores its value and cannot be scratched. |
 | Yahtzee celebration (SW-CEL-01, SW-PEN-04) | Splash when rolled (about 2 s or tap); pen picker when scored. |
 | Offline (SW-PLT-05) | Wanted: service worker, network-first with cached fallback. |
-| Platforms (SW-PLT-01) | One web-based solution; Web is the reference; MAUI frozen. Revisit if a single web solution is not possible. |
-| Bonus pace (SW-SCR-08) | Projected with three of each face; shown per card. |
+| Platforms and engine (SW-PLT-01, SW-PLT-03) | One web-based solution. Delete MAUI and WinForms now. One engine in a new `YahtzeeSim.Engine` class library, referenced by Web and the tests. Revisit if a single web solution is not possible. |
+| Bonus pace (SW-SCR-07/08) | Existing per-game Upper Pace row (+/- number and colour tone) is sufficient, in both modes. |
 | Probabilities (SW-PRB-04/05/06) | Seeded Monte-Carlo, recalculated on hold toggle; still shown for filled categories. |
 | New Game (SW-MOD-03) | Always confirms. |
 | Single mode layout (SW-MOD-04) | Unused columns stay visible, greyed out. |
@@ -239,8 +237,4 @@ Decided with the owner:
 | Performance (SW-NFR-02) | Under 100 ms on a mid-range phone. |
 | Tests (SW-OPS-05) | Engine unit tests in CI, gating the deploy. |
 
-Still open:
-
-1. In Full Sheet, which card does the status line report for bonus pace (SW-SCR-08), since there is no selected card?
-2. When MAUI is retired, and what happens to the shared engine link (SW-PLT-03) and the MAUI-only requirements (§3.8)?
-3. In Single mode, how should the extra-Yahtzee bonus be shown on the card (its own row or inside Bonus), and how does Undo restore it?
+No open questions remain.
