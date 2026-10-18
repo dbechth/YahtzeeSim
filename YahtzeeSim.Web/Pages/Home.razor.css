@@ -418,3 +418,58 @@ button:disabled {
 .yahtzee-bonus-row td:first-child {
     text-align: left;
 }
+
+/* Laptop / desktop: dice and controls beside the card so nothing needs scrolling */
+@media (min-width: 760px) and (min-aspect-ratio: 1/1) {
+    .game-page {
+        padding: 0.5rem;
+    }
+
+    .play-layout {
+        display: grid;
+        grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+        gap: 0.75rem;
+        align-items: start;
+    }
+
+    .play-panel {
+        position: sticky;
+        top: 0.5rem;
+    }
+
+    .top-bar {
+        grid-template-columns: 1fr auto;
+        grid-template-areas: "title new" "status status";
+        row-gap: 0.25rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .top-bar h1 { grid-area: title; font-size: 1.6rem; }
+    .top-bar .new-game { grid-area: new; }
+    .top-bar .status { grid-area: status; text-align: left; font-size: 0.85rem; }
+
+    .dice-row {
+        gap: 0.35rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .die {
+        font-size: 2.6rem;
+    }
+
+    .action-row button {
+        min-height: 3rem;
+    }
+
+    .score-btn {
+        min-height: clamp(1.2rem, calc((100dvh - 4.6rem) / 20.5 - 4px), 2.1rem);
+    }
+
+    .score-grid {
+        font-size: 0.8rem;
+    }
+
+    .score-grid th {
+        font-size: 0.8rem;
+    }
+}

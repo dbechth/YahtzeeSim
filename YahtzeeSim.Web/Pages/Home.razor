@@ -4,6 +4,8 @@
 <PageTitle>YahtzeeSim</PageTitle>
 
 <div class="game-page">
+  <div class="play-layout">
+   <div class="play-panel">
     <section class="top-bar">
         <h1>Yahtzee</h1>
         <div class="status">@GetStatusText()</div>
@@ -39,6 +41,8 @@
             @onclick="RollButtonClickedAsync">Roll</button>
         <button class="undo" disabled="@(!_isGameStarted || !_engine.CanUndo)" @onclick="UndoAsync">Undo</button>
     </section>
+   </div>
+   <div class="card-panel">
 
     <section class="score-wrap">
         <table class="score-grid" aria-label="Yahtzee Score Grid">
@@ -141,6 +145,8 @@
             </tbody>
         </table>
     </section>
+   </div>
+  </div>
 
     @if (_engine.Mode == GameMode.FullSheet && _engine.Cards.All(c => c.IsComplete))
     {

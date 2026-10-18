@@ -142,6 +142,7 @@ Source links point to the file that implements the behaviour.
 | SW-UIW-06 | Dice buttons shall be disabled unless holding is allowed. | Home.razor | UR-02 | ✅ |
 | SW-UIW-07 | The layout shall adapt with CSS (`@media (max-width: 820px)`, clamp-based sizing). | Home.razor.css | UR-11 | ✅ |
 | SW-UIW-08 | The scorecard shall use real-card layout and wording: "Upper Section" and "Lower Section" headings, a "Bonus 35 if 63+" label, a "Yahtzee Bonus" row of check marks, and the official box order and names. | Home.razor | UR-01 | ✅ |
+| SW-UIW-09 | On landscape screens at least 760 px wide (smallest target 1292×698), the dice/controls shall sit in a left column beside the score card, and the card's row height shall scale with viewport height so a full game can be played without scrolling. | Home.razor, Home.razor.css | UR-11 | ✅ |
 
 ### 3.9 Platform, packaging and reliability (PLT)
 
