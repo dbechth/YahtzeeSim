@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @inject IJSRuntime JS
 
 <PageTitle>YahtzeeSim</PageTitle>
@@ -231,18 +231,32 @@
     <div class="overlay">
         <div class="modal color-modal">
             <h3>@_colorPickerTitle</h3>
-            <div class="swatch-grid">
-                @foreach (var hex in PenColors)
+            <div class="wheel-wrap">
+                <div class="color-wheel"
+                     @onpointerdown="WheelPointer"
+                     @onpointermove="WheelPointer"
+                     aria-label="Colour wheel">
+                    <div class="wheel-marker" style="left:@(MarkerLeft());top:@(MarkerTop());background:@PickedHex"></div>
+                </div>
+            </div>
+            <label class="light-row">
+                <span>Dark</span>
+                <input type="range" class="light-slider" min="15" max="85" value="@((int)Math.Round(_pickLightness * 100))"
+                       style="--hue:@((int)_pickHue);--sat:@Percent(_pickSaturation)"
+                       @oninput="LightnessChanged" aria-label="Lightness" />
+                <span>Light</span>
+            </label>
+            <div class="pick-preview">
+                <span class="pick-chip" style="background:@PickedHex"></span>
+                <span>@PickedHex</span>
+            </div>
+            <div class="modal-actions">
+                <button @onclick="() => PickPenColorAsync(PickedHex)">Use this color</button>
+                @if (_allowKeepCurrentColor)
                 {
-                    <button class="swatch" style="background-color:@hex" @onclick="() => PickPenColorAsync(hex)" aria-label="Select @hex"></button>
+                    <button class="secondary" @onclick="KeepCurrentColor">Keep Current</button>
                 }
             </div>
-            @if (_allowKeepCurrentColor)
-            {
-                <div class="modal-actions">
-                    <button class="secondary" @onclick="KeepCurrentColor">Keep Current</button>
-                </div>
-            }
         </div>
     </div>
 }
@@ -278,15 +292,12 @@
     private bool _showYahtzeeSplash;
     private int _splashToken;
 
-    private static readonly string[] PenColors =
-    [
-        "#7F1D1D", "#B91C1C", "#EF4444", "#FCA5A5",
-        "#7C2D12", "#C2410C", "#F97316", "#FDBA74",
-        "#854D0E", "#CA8A04", "#FACC15", "#FDE68A",
-        "#166534", "#16A34A", "#4ADE80", "#BBF7D0",
-        "#1E3A8A", "#2563EB", "#60A5FA", "#BFDBFE",
-        "#581C87", "#7E22CE", "#C084FC", "#E9D5FF"
-    ];
+    private const double WheelSize = 240;
+    private double _pickHue;
+    private double _pickSaturation = 1;
+    private double _pickLightness = 0.5;
+
+    private string PickedHex => HslToHex(_pickHue, _pickSaturation, _pickLightness);
 
     protected override void OnInitialized()
     {
@@ -440,7 +451,84 @@
     {
         _colorPickerTitle = title;
         _allowKeepCurrentColor = allowKeepCurrent;
+        SetPickFromHex(_currentPenColorHex);
         _showColorPicker = true;
+    }
+
+    private void WheelPointer(PointerEventArgs e)
+    {
+        if (e.Type == "pointermove" && e.Buttons == 0)
+        {
+            return;
+        }
+
+        double radius = WheelSize / 2;
+        double dx = e.OffsetX - radius;
+        double dy = e.OffsetY - radius;
+        double angle = Math.Atan2(dx, -dy) * 180 / Math.PI;
+        _pickHue = (angle + 360) % 360;
+        _pickSaturation = Math.Min(1, Math.Sqrt((dx * dx) + (dy * dy)) / radius);
+    }
+
+    private void LightnessChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double percent))
+        {
+            _pickLightness = Math.Clamp(percent, 15, 85) / 100;
+        }
+    }
+
+    private static string Percent(double fraction) =>
+        (fraction * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    private string MarkerLeft() => Percent(0.5 + (0.5 * _pickSaturation * Math.Sin(_pickHue * Math.PI / 180)));
+
+    private string MarkerTop() => Percent(0.5 - (0.5 * _pickSaturation * Math.Cos(_pickHue * Math.PI / 180)));
+
+    private void SetPickFromHex(string hex)
+    {
+        if (!TryParseHexColor(hex, out int r, out int g, out int b))
+        {
+            return;
+        }
+
+        double rf = r / 255d, gf = g / 255d, bf = b / 255d;
+        double max = Math.Max(rf, Math.Max(gf, bf));
+        double min = Math.Min(rf, Math.Min(gf, bf));
+        double delta = max - min;
+        double light = (max + min) / 2;
+        double hue = 0;
+        if (delta > 0)
+        {
+            hue = max == rf ? ((gf - bf) / delta) % 6
+                : max == gf ? ((bf - rf) / delta) + 2
+                : ((rf - gf) / delta) + 4;
+            hue = (hue * 60 + 360) % 360;
+        }
+
+        double saturation = delta == 0 ? 0 : delta / (1 - Math.Abs((2 * light) - 1));
+        _pickHue = hue;
+        _pickSaturation = Math.Clamp(saturation, 0, 1);
+        _pickLightness = Math.Clamp(light, 0.15, 0.85);
+    }
+
+    private static string HslToHex(double hue, double saturation, double lightness)
+    {
+        double c = (1 - Math.Abs((2 * lightness) - 1)) * saturation;
+        double x = c * (1 - Math.Abs((hue / 60 % 2) - 1));
+        double m = lightness - (c / 2);
+        (double r, double g, double b) = (int)(hue / 60) switch
+        {
+            0 => (c, x, 0d),
+            1 => (x, c, 0d),
+            2 => (0d, c, x),
+            3 => (0d, x, c),
+            4 => (x, 0d, c),
+            _ => (c, 0d, x)
+        };
+
+        static int ToByte(double v) => (int)Math.Round(Math.Clamp(v, 0, 1) * 255);
+        return $"#{ToByte(r + m):X2}{ToByte(g + m):X2}{ToByte(b + m):X2}";
     }
 
     private async Task PickPenColorAsync(string hex)
@@ -654,12 +742,12 @@
     {
         return value switch
         {
-            1 => "⚀",
-            2 => "⚁",
-            3 => "⚂",
-            4 => "⚃",
-            5 => "⚄",
-            6 => "⚅",
+            1 => "\u2680",
+            2 => "\u2681",
+            3 => "\u2682",
+            4 => "\u2683",
+            5 => "\u2684",
+            6 => "\u2685",
             _ => string.Empty
         };
     }
@@ -671,7 +759,7 @@
 
     private string GetBonusMarks(int gameIndex)
     {
-        return new string('✓', _engine.Cards[gameIndex].YahtzeeBonusCount);
+        return new string('\u2713', _engine.Cards[gameIndex].YahtzeeBonusCount);
     }
 
     private string GetProbabilityText(ScoreCategory category)

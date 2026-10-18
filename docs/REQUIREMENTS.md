@@ -122,7 +122,7 @@ Source links point to the file that implements the behaviour.
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
 | SW-PEN-01 | The default pen colour shall be `#1D2939`. | Web `_currentPenColorHex` | UR-08 | ✅ |
-| SW-PEN-02 | The pen palette shall have 24 swatches (6 hues × 4 shades). | `Home.razor` `PenColors` | UR-08 | ✅ |
+| SW-PEN-02 | The pen picker shall be a blended colour wheel (hue and saturation) with a dark-to-light lightness slider and a live hex preview. | `Home.razor` `WheelPointer` / `HslToHex` | UR-08 | ✅ |
 | SW-PEN-03 | A mandatory pen-colour picker shall be shown right after a new game starts. | `PromptForPenColorAsync` / `OpenColorPicker` | UR-08 | ✅ |
 | SW-PEN-04 | After five of a kind is scored in any box (not as a scratch), the picker shall be shown again with a "Keep Current" option. | `OnScoreClickedAsync` / `ApplyScoreAsync` | UR-08 | ✅ Confirmed by decision: the picker fires on scoring; the celebration fires on rolling (SW-CEL-01) |
 | SW-PEN-05 | The colour shall not be changeable at any other time (no other entry point). | UI | UR-08 | ✅ |
