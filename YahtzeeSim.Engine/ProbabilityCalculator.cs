@@ -1,6 +1,6 @@
 ﻿namespace YahtzeeSim.Engine;
 
-internal static class ProbabilityCalculator
+public static class ProbabilityCalculator
 {
     private const int DiceCount = 5;
     private const int UpperSectionThreshold = 3;
@@ -107,6 +107,16 @@ internal static class ProbabilityCalculator
     private static double MonteCarloEstimate(ScoreCategory category, int[] startingDice, int rollsRemaining)
     {
         const int trials = 4000;
+
+        // Fixed seed combined with the state, so identical dice and rolls remaining always give identical figures.
+        int seed = 20240601 ^ ((int)category * 7919);
+        foreach (var die in startingDice)
+        {
+            seed = unchecked(seed * 31 + die);
+        }
+
+        seed = unchecked(seed * 31 + rollsRemaining);
+        var random = new Random(seed);
         int successes = 0;
 
         for (int trial = 0; trial < trials; trial++)
@@ -125,7 +135,7 @@ internal static class ProbabilityCalculator
                 for (int i = 0; i < simDice.Length; i++)
                 {
                     if (!hold[i])
-                        simDice[i] = Random.Shared.Next(1, 7);
+                        simDice[i] = random.Next(1, 7);
                 }
             }
 

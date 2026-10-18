@@ -99,6 +99,23 @@ public static class ScoreRules
         };
     }
 
+    public static bool IsFiveOfAKind(IReadOnlyList<int> dice)
+    {
+        return dice.Count > 0 && dice[0] >= 1 && dice.All(d => d == dice[0]);
+    }
+
+    /// <summary>Scores five of a kind under the Joker rule, where Full House and the straights score in full.</summary>
+    public static (bool IsValid, int Score) EvaluateJokerCategory(ScoreCategory category, IReadOnlyList<int> dice)
+    {
+        return category switch
+        {
+            ScoreCategory.FullHouse => (true, 25),
+            ScoreCategory.SmallStraight => (true, 30),
+            ScoreCategory.LargeStraight => (true, 40),
+            _ => EvaluateCategory(category, dice)
+        };
+    }
+
     public static bool IsCompleteForProbability(ScoreCategory category, IReadOnlyList<int> dice)
     {
         var counts = GetCounts(dice);

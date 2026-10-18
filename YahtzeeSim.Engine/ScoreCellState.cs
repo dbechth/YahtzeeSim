@@ -1,4 +1,6 @@
-﻿namespace YahtzeeSim.Engine;
+﻿using System.Text.Json.Serialization;
+
+namespace YahtzeeSim.Engine;
 
 public sealed class ScoreCellState
 {
@@ -6,8 +8,10 @@ public sealed class ScoreCellState
     public bool IsScratch { get; set; }
     public string PenColorHex { get; set; } = "#1D2939";
 
+    [JsonIgnore]
     public bool IsFilled => Value.HasValue;
 
+    [JsonIgnore]
     public string DisplayText => IsScratch ? "X" : (Value?.ToString() ?? string.Empty);
 
     public ScoreCellState Clone()

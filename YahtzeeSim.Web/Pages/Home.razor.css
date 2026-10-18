@@ -1,4 +1,4 @@
-.game-page {
+﻿.game-page {
     background: #f4efe7;
     padding: 0.35rem;
     border-radius: 10px;
@@ -298,6 +298,86 @@
     border: 2px solid #f8fafc;
 }
 
+.section-row td {
+    background: #1b4332;
+    color: #ffffff;
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: left;
+    padding: 2px 4px;
+}
+
+.hint {
+    display: block;
+    font-weight: 500;
+    font-size: 0.85em;
+    color: #6b7280;
+}
+
+.score-btn.scratch {
+    background: #f3f4f6;
+    border-style: dashed;
+    color: #6b7280;
+}
+
+.yahtzee-bonus-row td {
+    background: #fff7ed;
+    color: #9a3412;
+    font-weight: 700;
+}
+
+.bonus-marks {
+    letter-spacing: -0.1em;
+    word-break: break-all;
+    line-height: 1.1;
+}
+
+.grand-row td {
+    border-top: 2px solid #7f5539;
+}
+
+.col-off {
+    background: #e5e7eb !important;
+    color: #9ca3af !important;
+}
+
+.modal-text {
+    margin: 0 0 0.75rem;
+    text-align: center;
+    color: #5c3a21;
+}
+
+.yahtzee-splash {
+    background: radial-gradient(circle, rgba(250, 204, 21, 0.95), rgba(180, 83, 9, 0.95));
+    z-index: 1100;
+}
+
+.splash-text {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.5rem, 16vw, 6rem);
+    font-weight: 900;
+    color: #7f1d1d;
+    text-shadow: 0 4px 0 #fff7ed;
+    animation: splash-pop 0.6s ease-out;
+}
+
+@keyframes splash-pop {
+    0% {
+        transform: scale(0.2) rotate(-12deg);
+        opacity: 0;
+    }
+
+    70% {
+        transform: scale(1.15) rotate(3deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1) rotate(0);
+    }
+}
+
 button:disabled {
     opacity: 0.55;
     cursor: not-allowed;
@@ -336,4 +416,10 @@ button:disabled {
     .score-btn {
         min-height: 1.45rem;
     }
+}
+
+
+.totals-row td:first-child,
+.yahtzee-bonus-row td:first-child {
+    text-align: left;
 }

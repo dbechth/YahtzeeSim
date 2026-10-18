@@ -1,4 +1,4 @@
-// Caution! Be sure you understand the caveats before publishing an application with
+﻿// Caution! Be sure you understand the caveats before publishing an application with
 // offline support. See https://aka.ms/blazor-offline-considerations
 
 self.importScripts('./service-worker-assets.js');
@@ -23,6 +23,7 @@ const manifestUrlList = self.assetsManifest.assets.map(asset => new URL(asset.ur
 
 async function onInstall(event) {
     console.info('Service worker: Install');
+    self.skipWaiting();
 
     // Fetch and cache all matching items from the assets manifest
     const assetsRequests = self.assetsManifest.assets
@@ -44,19 +45,47 @@ async function onActivate(event) {
     await self.clients.claim();
 }
 
-async function onFetch(event) {
-    let cachedResponse = null;
-    if (event.request.method === 'GET') {
-        // For all navigation requests, try to serve index.html from cache,
-        // unless that request is for an offline resource.
-        // If you need some URLs to be server-rendered, edit the following check to exclude those URLs
-        const shouldServeIndexHtml = event.request.mode === 'navigate'
-            && !manifestUrlList.some(url => url === event.request.url);
+// Network-first: always try for the latest files, fall back to the cache when offline or slow.
+const networkTimeoutMs = 4000;
 
-        const request = shouldServeIndexHtml ? 'index.html' : event.request;
-        const cache = await caches.open(cacheName);
-        cachedResponse = await cache.match(request);
+async function onFetch(event) {
+    const request = event.request;
+    if (request.method !== 'GET') {
+        return fetch(request);
     }
 
-    return cachedResponse || fetch(event.request);
+    const isNavigation = request.mode === 'navigate' && !manifestUrlList.some(url => url === request.url);
+    const cacheKey = isNavigation ? 'index.html' : request;
+    const cache = await caches.open(cacheName);
+
+    try {
+        const response = await fetchWithTimeout(request, cache, cacheKey);
+        if (response.ok && (isNavigation || manifestUrlList.includes(request.url))) {
+            cache.put(cacheKey, response.clone());
+        }
+
+        return response;
+    } catch (error) {
+        const cachedResponse = await cache.match(cacheKey);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+
+        throw error;
+    }
+}
+
+async function fetchWithTimeout(request, cache, cacheKey) {
+    const hasCachedCopy = !!(await cache.match(cacheKey));
+    if (!hasCachedCopy) {
+        return fetch(request);
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), networkTimeoutMs);
+    try {
+        return await fetch(request, { signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
 }
