@@ -1,0 +1,26 @@
+﻿name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Run engine tests
+        run: dotnet test YahtzeeSim.Engine.Tests/YahtzeeSim.Engine.Tests.csproj -c Release
+
+      - name: Build Web
+        run: dotnet build YahtzeeSim.Web/YahtzeeSim.Web.csproj -c Release

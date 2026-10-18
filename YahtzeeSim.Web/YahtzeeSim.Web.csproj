@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\YahtzeeSim.Maui\Engine\**\*.cs" Link="Engine\%(RecursiveDir)%(Filename)%(Extension)" />
+    <ProjectReference Include="..\YahtzeeSim.Engine\YahtzeeSim.Engine.csproj" />
   </ItemGroup>
 
 </Project>

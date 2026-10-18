@@ -1,4 +1,4 @@
-namespace YahtzeeSim.Maui.Engine;
+﻿namespace YahtzeeSim.Engine;
 
 internal static class ProbabilityCalculator
 {
@@ -36,7 +36,7 @@ internal static class ProbabilityCalculator
             return ScoreRules.IsCompleteForProbability(category, startingDice) ? 1d : 0d;
         }
 
-        // If the starting dice already satisfy the category, every trial would succeed — short-circuit.
+        // If the starting dice already satisfy the category, every trial would succeed â€” short-circuit.
         if (ScoreRules.IsCompleteForProbability(category, startingDice))
         {
             return 1d;

@@ -1,10 +1,10 @@
 # YahtzeeSim
 
-Yahtzee simulator with multiple front ends:
+Yahtzee simulator delivered as one web app (Blazor WebAssembly PWA):
 
-- Windows desktop app: `YahtzeeSim`
-- MAUI app: `YahtzeeSim.Maui`
-- Web PWA app: `YahtzeeSim.Web`
+- `YahtzeeSim.Web`: the web front end
+- `YahtzeeSim.Engine`: the single game engine (no UI dependencies)
+- `YahtzeeSim.Engine.Tests`: engine unit tests (`dotnet test`)
 
 ## Web App Quick Start
 

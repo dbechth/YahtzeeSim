@@ -1,4 +1,4 @@
-namespace YahtzeeSim.Maui.Engine;
+﻿namespace YahtzeeSim.Engine;
 
 public sealed class GameEngineSnapshot
 {

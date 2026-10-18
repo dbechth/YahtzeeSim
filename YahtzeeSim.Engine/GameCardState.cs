@@ -1,6 +1,6 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 
-namespace YahtzeeSim.Maui.Engine;
+namespace YahtzeeSim.Engine;
 
 public sealed class GameCardState
 {
