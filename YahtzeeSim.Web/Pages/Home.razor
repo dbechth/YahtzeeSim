@@ -12,10 +12,23 @@
         <span class="brand-name">Yahtzee<span>Sim</span></span>
     </h1>
     <div class="top-total" aria-hidden="true"><span>Total</span><strong>@GetCardTotalDisplay()</strong></div>
+    <button type="button" class="dock-btn dock-side" aria-label="@DockSideLabel" title="@DockSideLabel" @onclick="ToggleDiceSideAsync">
+        <svg viewBox="0 0 20 16" width="22" height="18" aria-hidden="true" focusable="false">
+            <rect x="1" y="1" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <rect x="@(_diceSide == "left" ? 2.5 : 11.5)" y="2.5" width="6" height="11" rx="1.2" fill="currentColor" />
+        </svg>
+        <span>Dice @(_diceSide == "left" ? "left" : "right")</span>
+    </button>
+    <button type="button" class="dock-btn dock-edge" aria-label="@DockEdgeLabel" title="@DockEdgeLabel" @onclick="ToggleDiceEdgeAsync">
+        <svg viewBox="0 0 20 16" width="22" height="18" aria-hidden="true" focusable="false">
+            <rect x="1" y="1" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <rect x="2.5" y="@(_diceEdge == "top" ? 2.5 : 9)" width="15" height="4.5" rx="1.2" fill="currentColor" />
+        </svg>
+    </button>
     <button type="button" class="new-game" @onclick="StartGameButtonClicked">New Game</button>
   </header>
   <div class="content">
-  <div class="play-layout">
+  <div class="play-layout dice-@_diceSide dice-@_diceEdge">
    <div class="play-panel turn-card">
     <div class="turn-overline">
         <span class="turn-mode">@(_isGameStarted ? ModeLabel : "New game")</span>
@@ -336,11 +349,16 @@
 
     private const string SaveKey = "yahtzeesim.save";
     private const string PenKey = "yahtzeesim.pen";
+    private const string DiceSideKey = "yahtzeesim.diceSide";
+    private const string DiceEdgeKey = "yahtzeesim.diceEdge";
     private const int SplashMilliseconds = 2000;
 
     private readonly YahtzeeGameEngine _engine = new();
     private Dictionary<ScoreCategory, double> _probabilities = new();
     private string _currentPenColorHex = "#1D2939";
+    // Landscape puts the dice beside the scorecard (left or right); portrait puts them above or below it.
+    private string _diceSide = "right";
+    private string _diceEdge = "bottom";
     private bool _isGameStarted;
     private bool _isRollPressVisual;
     private string _noticeText = string.Empty;
@@ -421,6 +439,20 @@
                 _currentPenColorHex = pen;
             }
 
+            string? side = await JS.InvokeAsync<string?>("localStorage.getItem", DiceSideKey);
+            string? edge = await JS.InvokeAsync<string?>("localStorage.getItem", DiceEdgeKey);
+            if (side is "left" or "right")
+            {
+                _diceSide = side;
+            }
+
+            if (edge is "top" or "bottom")
+            {
+                _diceEdge = edge;
+            }
+
+            StateHasChanged();
+
             string? saved = await JS.InvokeAsync<string?>("localStorage.getItem", SaveKey);
             if (!string.IsNullOrWhiteSpace(saved))
             {
@@ -462,6 +494,35 @@
         catch (JSException)
         {
             // Saving is best effort.
+        }
+    }
+
+    private string DockSideLabel => $"Dice are on the {_diceSide}. Move dice to the {(_diceSide == "left" ? "right" : "left")}.";
+
+    private string DockEdgeLabel => $"Dice are at the {_diceEdge}. Move dice to the {(_diceEdge == "top" ? "bottom" : "top")}.";
+
+    private async Task ToggleDiceSideAsync()
+    {
+        _diceSide = _diceSide == "left" ? "right" : "left";
+        _announcement = $"Dice moved to the {_diceSide}.";
+        await SetPreferenceAsync(DiceSideKey, _diceSide);
+    }
+
+    private async Task ToggleDiceEdgeAsync()
+    {
+        _diceEdge = _diceEdge == "top" ? "bottom" : "top";
+        _announcement = $"Dice moved to the {_diceEdge}.";
+        await SetPreferenceAsync(DiceEdgeKey, _diceEdge);
+    }
+
+    private async Task SetPreferenceAsync(string key, string value)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", key, value);
+        }
+        catch (JSException)
+        {
         }
     }
 

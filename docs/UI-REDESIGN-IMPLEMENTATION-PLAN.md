@@ -37,14 +37,14 @@ In particular, Full Sheet does **not** mean six sequential games, one shared han
 - Keep the score sheet as the main destination-selection surface. A player must be able to compare the current hand against all six cards without changing views.
 - Keep the title and current turn state compact. Give dice, Roll, Undo, score destinations, category names and totals the strongest hierarchy.
 - Follow the visual language of `YahtzeeSim-redesign-concept.html`: dark forest page with a rounded cream app shell, a dark topbar with the YahtzeeSim brand, a dark-green turn card (roll-progress segments, cream dice that lift and gain a gold border when held, a mint Roll button and a text Undo) beside a cream scorecard card with a serif header and uppercase column labels. Do not copy its placeholder data, Settings button, tap-again scratch confirmation or omitted features. Use color as reinforcement, not the only signal for state.
-- Design goal (SW-UIW-09): fill the screen. The page uses the full viewport height and the score rows stretch to use the height left over, so a full game plays without scrolling on landscape and on phone portrait. Scroll only when the viewport is shorter than the minimum row height allows. The wide layout (turn card beside the sheet) applies to landscape screens at least 760 x 560.
+- Design goal (SW-UIW-09): fill the screen. The page uses the full viewport height and the score rows stretch to use the height left over, so a full game plays without scrolling. The turn card (dice, Roll, Undo) is always visible: the page never scrolls, and only the score card scrolls (with a sticky header row) when the viewport is too short for the minimum row height. The wide layout (turn card beside the sheet) applies to landscape screens at least 760 x 560.
 
 ### Phone and narrow screens
 
 - Keep all six games available on the same screen and make each destination identifiable as G1 through G6. Do not hide other cards behind tabs or require switching to a different game to place the next result.
 - Use the same compact six-column table as the wide layout: one row per category with its name, Odds and six score cells labelled G1 to G6 in the header. Each cell maps to exactly one card. Keep the Upper and Lower Section headings, the Bonus label, the Yahtzee Bonus row, and the per-card Upper Pace, Upper Total, Lower Total, Game Total and Card Total values (SW-SCR-03, 06, 07; SW-UIW-08).
 - Ensure all six columns fit at 320 px wide without horizontal page scrolling.
-- Put a compact turn card (status, dice, Roll with roll count, Undo) above the table, with the total in the top bar. Hide the one-line hint on short portrait screens.
+- Put a compact turn card (status, dice, Roll with roll count, Undo) above or below the table, with the total in the top bar. Hide the one-line hint on short portrait screens.
 - Dice, Roll, Undo and New Game stay at least 44 px tall. Score cells fill their table cell (about 24 px tall at 844 px, about 17 px at 664 px). This is a recorded exception to the 44 px target, chosen by the product owner to avoid scrolling; the scratch confirm and Undo mitigate mistaken taps.
 
 ## Content and interaction requirements
@@ -92,10 +92,11 @@ In particular, Full Sheet does **not** mean six sequential games, one shared han
 ### Responsive presentation
 
 - At 1292 x 698 landscape, dice and controls appear beside the scorecard, with G1–G6 visible together.
-- At 390 x 844 and 390 x 664 portrait, the turn card is above the table and the full six-column table is visible without page scrolling.
+- At 390 x 844 and 390 x 664 portrait, the turn card is below the table by default and the full six-column table is visible without scrolling.
 - At 320 CSS px wide, there is no horizontal page overflow and category names remain on one line. Very short screens (for example 320 x 568) may scroll vertically.
 - At 1292 x 698 and larger landscape, and at 360 x 740 and taller portrait, a full game plays without page scrolling and the rows stretch to fill the height.
 - In Single mode, the same responsive UI does not accidentally enable G2–G6.
+- Dice position (SW-UIW-14): a top-bar button moves the turn card left or right in landscape (default right) and top or bottom in portrait (default bottom). The choice persists across reloads. At every viewport tested (down to 320 x 568 and 844 x 390) the page does not scroll, the dice stay fully visible and only the score card scrolls.
 
 ### Feature preservation and accessibility
 

@@ -17,6 +17,7 @@
 
 .game-page {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -111,6 +112,27 @@ button:disabled {
     font-size: 1.15rem;
 }
 
+.dock-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0 0.6rem;
+    border: 1px solid rgba(184, 239, 199, 0.35);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--mint);
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dock-btn:hover {
+    background: rgba(184, 239, 199, 0.14);
+}
+
 .new-game {
     min-height: 2.75rem;
     padding: 0 0.9rem;
@@ -147,6 +169,7 @@ button:disabled {
 /* Turn card */
 
 .turn-card {
+    flex: none;
     display: flex;
     flex-direction: column;
     padding: 0.6rem 0.7rem 0.7rem;
@@ -364,6 +387,7 @@ button:disabled {
 
 .score-wrap {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     border: 1px solid var(--line);
@@ -419,6 +443,8 @@ button:disabled {
     flex: 1;
     display: flex;
     min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .score-grid {
@@ -450,6 +476,9 @@ button:disabled {
 }
 
 .score-grid th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     height: 1.2rem;
     background: var(--section);
     font-size: 0.62rem;
@@ -461,7 +490,7 @@ button:disabled {
 
 .score-grid .cat-head,
 .score-grid .odds-head {
-    position: static;
+    position: sticky;
     width: auto;
     height: 1.2rem;
     margin: 0;
@@ -896,6 +925,18 @@ button:disabled {
     .die {
         max-height: 3.3rem;
     }
+
+    .dock-edge {
+        display: inline-flex;
+    }
+
+    .dice-top .turn-card {
+        order: -1;
+    }
+
+    .dice-bottom .turn-card {
+        order: 2;
+    }
 }
 
 /* Short portrait screens: drop the one-line hint; the roll count on the Roll button still shows progress. */
@@ -953,6 +994,18 @@ button:disabled {
     .turn-card {
         flex: 0 0 clamp(16rem, 27%, 24rem);
         padding: 1rem 1.1rem;
+    }
+
+    .dock-side {
+        display: inline-flex;
+    }
+
+    .dice-left .turn-card {
+        order: -1;
+    }
+
+    .dice-right .turn-card {
+        order: 2;
     }
 
     .card-panel {
@@ -1052,5 +1105,21 @@ button:disabled {
     .score-btn {
         inset: 2px;
         border-radius: 7px;
+    }
+}
+
+@media (max-width: 420px) {
+    .topbar {
+        gap: 0.4rem;
+        padding: 0 0.4rem;
+    }
+
+    .new-game {
+        padding: 0 0.65rem;
+        font-size: 0.8rem;
+    }
+
+    .dock-btn {
+        padding: 0 0.4rem;
     }
 }
