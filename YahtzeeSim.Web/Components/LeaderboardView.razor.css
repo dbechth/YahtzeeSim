@@ -1,0 +1,118 @@
+.lb-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+}
+
+.lb-tabs {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+    background: #e4e6dc;
+}
+
+.lb-tab {
+    min-height: 2.5rem;
+    padding: 0 0.9rem;
+    border: 0;
+    background: transparent;
+    color: var(--forest);
+    font-weight: 700;
+}
+
+.lb-tab.active {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.lb-tab:focus-visible,
+.lb-retry:focus-visible,
+.lb-close:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: -3px;
+}
+
+.lb-body {
+    min-height: 8rem;
+    max-height: 50dvh;
+    overflow-y: auto;
+}
+
+.lb-message,
+.lb-yours {
+    text-align: center;
+    color: var(--muted);
+}
+
+.lb-yours {
+    margin: 0.7rem 0 0;
+    color: var(--ink);
+}
+
+.lb-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.lb-table th,
+.lb-table td {
+    padding: 0.45rem 0.6rem;
+    text-align: left;
+    border-bottom: 1px solid var(--rule);
+}
+
+.lb-table th {
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.lb-table .lb-score {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-me {
+    background: #dff3e4;
+    font-weight: 700;
+}
+
+.lb-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.lb-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.8rem;
+}
+
+.lb-close,
+.lb-retry {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.9rem;
+    border: 0;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+h3 {
+    margin: 0 0 0.65rem;
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--forest);
+}

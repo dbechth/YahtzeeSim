@@ -129,6 +129,11 @@ button:disabled {
     white-space: nowrap;
 }
 
+.account-btn {
+    display: inline-flex;
+    padding: 0 0.5rem;
+}
+
 .dock-btn:hover {
     background: rgba(184, 239, 199, 0.14);
 }
@@ -1121,5 +1126,11 @@ button:disabled {
 
     .dock-btn {
         padding: 0 0.4rem;
+    }
+}
+
+@media (max-width: 440px) {
+    .brand-name {
+        display: none;
     }
 }

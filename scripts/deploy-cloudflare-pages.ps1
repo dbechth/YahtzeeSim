@@ -31,7 +31,20 @@ $publishRoot = Join-Path $repoRoot "YahtzeeSim.Web\bin\Release\net9.0\publish\ww
 Write-Host "Publishing Blazor app..."
 dotnet publish $webProject -c Release
 
-Write-Host "Deploying to Cloudflare Pages project '$ProjectName'..."
-npx -y wrangler pages deploy $publishRoot --project-name $ProjectName --branch $Branch
+Write-Host "Applying D1 migrations..."
+Push-Location $repoRoot
+try {
+    if (Select-String -Path wrangler.toml -Pattern '00000000-0000-0000-0000-000000000000' -Quiet) {
+        Write-Warning "wrangler.toml still has the placeholder D1 database_id; skipping migrations."
+    } else {
+        npx -y wrangler d1 migrations apply DB --remote
+    }
+
+    # Run from the repo root so Wrangler bundles functions/ and the D1 binding from wrangler.toml.
+    Write-Host "Deploying to Cloudflare Pages project '$ProjectName'..."
+    npx -y wrangler pages deploy $publishRoot --project-name $ProjectName --branch $Branch
+} finally {
+    Pop-Location
+}
 
 Write-Host "Deployment complete."

@@ -55,6 +55,13 @@
             return false;
         };
 
+        // Lets the app upload queued scores as soon as the device is back online.
+        window.yahtzeeSimOnOnline = function (dotNetRef) {
+            window.addEventListener('online', function () {
+                dotNetRef.invokeMethodAsync('OnBackOnline');
+            });
+        };
+
         // Offline support: network-first service worker (see service-worker.published.js).
         // "Reset app data" above clears workers and caches if the app ever gets stuck.
         if ('serviceWorker' in navigator) {

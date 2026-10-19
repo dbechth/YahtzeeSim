@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace YahtzeeSim.Engine;
@@ -22,6 +22,16 @@ public sealed class YahtzeeGameEngine
     public GameMode Mode { get; private set; } = GameMode.Single;
     public int RollCount { get; private set; }
 
+    /// <summary>Identifies one game across autosave/resume so a finished score is only ever submitted once.</summary>
+    public Guid GameId { get; private set; } = Guid.NewGuid();
+
+    /// <summary>Total across all cards once the game is complete; null while it is still in progress.</summary>
+    public int? FinalScore => IsGameComplete ? Cards.Sum(c => c.GameTotal ?? 0) : null;
+
+    /// <summary>The 1-based number of the turn in progress: one box is filled per turn, on any card in play. Null once the game is complete.</summary>
+    public int? TurnNumber => IsGameComplete
+        ? null
+        : Cards.Where((_, i) => IsCardEnabled(i)).Sum(c => ScoreRules.ScoringCategories.Count(cat => c.Scores[cat].IsFilled)) + 1;
     public bool AwaitingScoreSelection => RollCount >= RollsPerTurn;
     public bool CanRoll => !AwaitingScoreSelection && !IsGameComplete;
     public bool CanUndo => _undoSnapshot != null;
@@ -48,6 +58,7 @@ public sealed class YahtzeeGameEngine
     {
         Mode = mode;
         RollCount = 0;
+        GameId = Guid.NewGuid();
         _undoSnapshot = null;
 
         Dice = Enumerable.Range(1, DiceInGame)
@@ -198,7 +209,7 @@ public sealed class YahtzeeGameEngine
 
     public string Serialize()
     {
-        var save = new GameSave { Current = CreateSnapshot(), Undo = _undoSnapshot };
+        var save = new GameSave { GameId = GameId, Current = CreateSnapshot(), Undo = _undoSnapshot };
         return JsonSerializer.Serialize(save, JsonOptions);
     }
 
@@ -223,6 +234,7 @@ public sealed class YahtzeeGameEngine
 
             RestoreSnapshot(save.Current);
             _undoSnapshot = save.Undo;
+            GameId = save.GameId is { } id && id != Guid.Empty ? id : Guid.NewGuid();
             return true;
         }
         catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)

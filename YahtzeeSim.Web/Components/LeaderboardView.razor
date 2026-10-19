@@ -1,0 +1,122 @@
+@inject HttpClient Http
+@inject AccountService Account
+
+<h3 id="lb-title">Leaderboard</h3>
+
+<div class="lb-controls">
+    <div class="lb-tabs" role="group" aria-label="Game mode">
+        <button type="button" class="@Tab(_mode == "Single")" aria-pressed="@(_mode == "Single" ? "true" : "false")" @onclick='() => SelectAsync("Single", _period)'>Single</button>
+        <button type="button" class="@Tab(_mode == "FullSheet")" aria-pressed="@(_mode == "FullSheet" ? "true" : "false")" @onclick='() => SelectAsync("FullSheet", _period)'>Full Sheet</button>
+    </div>
+    <div class="lb-tabs" role="group" aria-label="Time period">
+        <button type="button" class="@Tab(_period == "all")" aria-pressed="@(_period == "all" ? "true" : "false")" @onclick='() => SelectAsync(_mode, "all")'>All time</button>
+        <button type="button" class="@Tab(_period == "week")" aria-pressed="@(_period == "week" ? "true" : "false")" @onclick='() => SelectAsync(_mode, "week")'>This week</button>
+    </div>
+</div>
+
+<div class="lb-body" aria-busy="@(_loading ? "true" : "false")">
+    @if (_loading)
+    {
+        <p class="lb-message" role="status">Loading&hellip;</p>
+    }
+    else if (_failed)
+    {
+        <p class="lb-message" role="alert">The leaderboard needs a connection.</p>
+        <p class="lb-message"><button type="button" class="lb-retry" @onclick="() => SelectAsync(_mode, _period)">Try again</button></p>
+    }
+    else if (_data is { Entries.Count: 0 })
+    {
+        <p class="lb-message">No scores yet. Finish a game to be first!</p>
+    }
+    else if (_data != null)
+    {
+        <table class="lb-table">
+            <caption class="lb-sr">@(_mode == "Single" ? "Single" : "Full Sheet") scores, @(_period == "all" ? "all time" : "this week")</caption>
+            <thead>
+                <tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" class="lb-score">Score</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in _data.Entries)
+                {
+                    bool mine = string.Equals(entry.Nickname, Account.Nickname, StringComparison.OrdinalIgnoreCase);
+                    <tr class="@(mine ? "lb-me" : null)" aria-current="@(mine ? "true" : null)">
+                        <td>@entry.Rank</td>
+                        <td>@entry.Nickname@(mine ? " (you)" : null)</td>
+                        <td class="lb-score">@entry.Best</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (_data.Me is { } me && !_data.Entries.Any(e => string.Equals(e.Nickname, Account.Nickname, StringComparison.OrdinalIgnoreCase)))
+        {
+            <p class="lb-yours">Your best: <strong>@me.Best</strong> (rank @me.Rank)</p>
+        }
+        else if (_data.Me == null)
+        {
+            <p class="lb-yours">You have no score here yet.</p>
+        }
+    }
+</div>
+
+<div class="lb-actions">
+    <button type="button" class="lb-close" @onclick="() => OnClose.InvokeAsync()">Close</button>
+</div>
+
+@code {
+    private sealed record Entry(int Rank, string Nickname, int Best);
+
+    private sealed record Me(string? Nickname, int Best, int Rank);
+
+    private sealed record Board(List<Entry> Entries, Me? Me);
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string _mode = "Single";
+    private string _period = "all";
+    private bool _loading = true;
+    private bool _failed;
+    private Board? _data;
+    private int _request;
+
+    protected override Task OnInitializedAsync() => SelectAsync(_mode, _period);
+
+    private static string Tab(bool active) => active ? "lb-tab active" : "lb-tab";
+
+    private async Task SelectAsync(string mode, string period)
+    {
+        _mode = mode;
+        _period = period;
+        _loading = true;
+        _failed = false;
+        int request = ++_request;
+        Board? board = null;
+        try
+        {
+            using var response = await Http.GetAsync($"api/leaderboard?mode={mode}&period={period}");
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                await Account.HandleSessionExpiredAsync();
+                return;
+            }
+
+            if (response.IsSuccessStatusCode && response.Content.Headers.ContentType?.MediaType == "application/json")
+            {
+                board = await response.Content.ReadFromJsonAsync<Board>();
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException)
+        {
+        }
+
+        if (request != _request)
+        {
+            return;
+        }
+
+        _data = board;
+        _failed = board == null;
+        _loading = false;
+    }
+}

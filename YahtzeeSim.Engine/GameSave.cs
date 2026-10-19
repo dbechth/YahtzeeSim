@@ -6,6 +6,8 @@ public sealed class GameSave
     public const int CurrentVersion = 1;
 
     public int Version { get; set; } = CurrentVersion;
+    /// <summary>Absent in saves written before accounts existed; the engine then assigns a fresh id.</summary>
+    public Guid? GameId { get; set; }
     public GameEngineSnapshot Current { get; set; } = new();
     public GameEngineSnapshot? Undo { get; set; }
 }

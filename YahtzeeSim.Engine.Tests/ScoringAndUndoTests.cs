@@ -1,4 +1,4 @@
-﻿using YahtzeeSim.Engine;
+using YahtzeeSim.Engine;
 using static YahtzeeSim.Engine.Tests.TestHelpers;
 
 namespace YahtzeeSim.Engine.Tests;
@@ -222,5 +222,37 @@ public class ScoringAndUndoTests
         engine.RollDice();
         Assert.False(engine.Undo());
         Assert.Equal(1, engine.RollCount);
+    }
+
+    [Fact]
+    public void TurnNumber_CountsBoxesFilledOnAnyCardAndFollowsUndo()
+    {
+        var engine = NewGame(GameMode.FullSheet);
+        Assert.Equal(1, engine.TurnNumber);
+
+        engine.SetRoll(1, 1, 1, 1, 2);
+        engine.TryApplyScore(3, ScoreCategory.Aces, Pen);
+        Assert.Equal(2, engine.TurnNumber);
+
+        engine.SetRoll(2, 2, 2, 5, 6);
+        engine.TryApplyScore(5, ScoreCategory.Twos, Pen);
+        Assert.Equal(3, engine.TurnNumber);
+
+        Assert.True(engine.Undo());
+        Assert.Equal(2, engine.TurnNumber);
+
+        engine.TryApplyScore(5, ScoreCategory.Twos, Pen);
+        Assert.Equal(3, engine.TurnNumber);
+    }
+
+    [Fact]
+    public void TurnNumber_IsNullWhenTheGameIsComplete()
+    {
+        var engine = NewGame();
+        engine.FillAllExcept(0, ScoreCategory.Chance);
+        Assert.Equal(13, engine.TurnNumber);
+        engine.SetRoll(1, 2, 3, 4, 6);
+        engine.TryApplyScore(0, ScoreCategory.Chance, Pen);
+        Assert.Null(engine.TurnNumber);
     }
 }

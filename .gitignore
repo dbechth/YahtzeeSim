@@ -36,6 +36,10 @@
 !**/*.appxmanifest
 !**/*.png
 !**/*.svg
+!**/*.ts
+!**/*.sql
+!wrangler.toml
+!.dev.vars.example
 
 # Always ignore generated artifacts and local IDE state.
 **/bin/**
@@ -51,3 +55,8 @@
 **/*.runtimeconfig.json
 **/*.nupkg
 **/*.snupkg
+
+# Node tooling (Pages Functions) and local secrets.
+**/node_modules/**
+.wrangler/**
+.dev.vars

@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -18,6 +18,20 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install API dependencies
+        run: npm ci
+
+      - name: Type-check and test API
+        run: |
+          npm run typecheck
+          npm test
 
       - name: Run engine tests
         run: dotnet test YahtzeeSim.Engine.Tests/YahtzeeSim.Engine.Tests.csproj -c Release

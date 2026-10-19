@@ -48,6 +48,47 @@ public class PersistenceAndProbabilityTests
     }
 
     [Fact]
+    public void Save_PreservesGameId_AndResetIssuesANewOne()
+    {
+        var engine = NewGame();
+        var restored = NewGame();
+        Assert.True(restored.TryLoad(engine.Serialize()));
+        Assert.Equal(engine.GameId, restored.GameId);
+
+        var before = engine.GameId;
+        engine.Reset(GameMode.Single);
+        Assert.NotEqual(before, engine.GameId);
+    }
+
+    [Fact]
+    public void Save_WithoutGameId_StillLoadsWithAFreshId()
+    {
+        var engine = NewGame();
+        var json = System.Text.RegularExpressions.Regex.Replace(engine.Serialize(), "\"GameId\":\"[^\"]*\",?", string.Empty);
+        Assert.DoesNotContain("GameId", json);
+
+        var restored = NewGame();
+        Assert.True(restored.TryLoad(json));
+        Assert.NotEqual(Guid.Empty, restored.GameId);
+    }
+
+    [Fact]
+    public void FinalScore_IsNullUntilComplete_ThenSumsAllCards()
+    {
+        var engine = NewGame(GameMode.FullSheet);
+        Assert.Null(engine.FinalScore);
+
+        for (int g = 0; g < YahtzeeGameEngine.GameCount; g++)
+        {
+            engine.FillAllExcept(g);
+            engine.Fill(g, ScoreCategory.Chance, 20);
+        }
+
+        Assert.True(engine.IsGameComplete);
+        Assert.Equal(6 * 20, engine.FinalScore);
+    }
+
+    [Fact]
     public void Save_OfANewGameRestoresABlankGame()
     {
         var engine = NewGame();

@@ -1,0 +1,51 @@
+@inject AccountService Account
+
+<div class="gate">
+    <section class="gate-card" aria-labelledby="nick-title">
+        <div class="gate-mark" aria-hidden="true">&#9860;</div>
+        <h1 id="nick-title">Pick a nickname</h1>
+        <p class="gate-lead">This is the name shown on the leaderboard. Your Google name stays private.</p>
+
+        <form @onsubmit="SaveAsync" class="gate-form">
+            <label for="nickname">Nickname</label>
+            <input id="nickname" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false"
+                   aria-describedby="nick-help nick-error" aria-invalid="@(_error != null ? "true" : "false")"
+                   @bind="_nickname" @bind:event="oninput" />
+            <p id="nick-help" class="gate-fine">3 to 16 letters, numbers, spaces, _ or -.</p>
+            <p id="nick-error" class="gate-error" role="alert">@_error</p>
+            <button type="submit" class="gate-btn" disabled="@_saving">Save and play</button>
+        </form>
+
+        <button type="button" class="gate-link" @onclick="Account.SignOutAsync">Sign out</button>
+    </section>
+</div>
+
+@code {
+    private string _nickname = string.Empty;
+    private string? _error;
+    private bool _saving;
+
+    private async Task SaveAsync()
+    {
+        string nickname = _nickname.Trim();
+        if (nickname.Length is < 3 or > 16 || !NicknameChars.IsMatch(nickname))
+        {
+            _error = "Use 3 to 16 letters, numbers, spaces, _ or -, starting and ending with a letter or number.";
+            return;
+        }
+
+        _saving = true;
+        _error = null;
+        var result = await Account.SetNicknameAsync(nickname);
+        _saving = false;
+        _error = result switch
+        {
+            NicknameResult.Taken => "That nickname is taken. Try another.",
+            NicknameResult.Invalid => "That nickname is not allowed. Try another.",
+            NicknameResult.Failed => "Could not save. Check your connection and try again.",
+            _ => null
+        };
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex NicknameChars = new("^[A-Za-z0-9][A-Za-z0-9 _-]*[A-Za-z0-9]$");
+}

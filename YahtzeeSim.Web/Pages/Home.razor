@@ -1,5 +1,7 @@
 @page "/"
 @inject IJSRuntime JS
+@inject AccountService Account
+@inject ScoreQueue Queue
 
 <PageTitle>YahtzeeSim</PageTitle>
 
@@ -23,6 +25,16 @@
         <svg viewBox="0 0 20 16" width="22" height="18" aria-hidden="true" focusable="false">
             <rect x="1" y="1" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6" />
             <rect x="2.5" y="@(_diceEdge == "top" ? 2.5 : 9)" width="15" height="4.5" rx="1.2" fill="currentColor" />
+        </svg>
+    </button>
+    <button type="button" class="dock-btn account-btn" aria-label="Leaderboard" title="Leaderboard" @onclick="OpenLeaderboard">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M7 3h10v2h3v3c0 2.2-1.8 4-4 4h-.3A5 5 0 0 1 13 14.9V17h3v2H8v-2h3v-2.1A5 5 0 0 1 8.3 12H8C5.8 12 4 10.2 4 8V5h3V3zm-1 4v1c0 1.1.9 2 2 2V7H6zm12 0h-2v3c1.1 0 2-.9 2-2V7z" />
+        </svg>
+    </button>
+    <button type="button" class="dock-btn account-btn" aria-label="@AccountLabel" title="@AccountLabel" @onclick="OpenAccountAsync">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4 0-8 2-8 5v2h16v-2c0-3-4-5-8-5z" />
         </svg>
     </button>
     <button type="button" class="new-game" @onclick="StartGameButtonClicked">New Game</button>
@@ -337,6 +349,34 @@
     </div>
 }
 
+@if (_showLeaderboard)
+{
+    <div class="overlay" @onkeydown="OnLeaderboardKeyDown">
+        <div class="modal leaderboard-modal" role="dialog" aria-modal="true" aria-labelledby="lb-title" tabindex="-1" @ref="_dialogRef">
+            <LeaderboardView OnClose="CloseLeaderboard" />
+        </div>
+    </div>
+}
+
+@if (_showAccount)
+{
+    <div class="overlay" @onkeydown="OnAccountKeyDown">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-title" tabindex="-1" @ref="_dialogRef">
+            <h3 id="account-title">Account</h3>
+            <p class="modal-text">Signed in as <strong>@Account.Nickname</strong>@(Account.IsOffline ? " (offline)" : null)</p>
+            @if (_pendingScores > 0)
+            {
+                <p class="modal-text">@_pendingScores finished @(_pendingScores == 1 ? "game is" : "games are") waiting to upload. @(_pendingScores == 1 ? "It" : "They") will upload when you sign in as @Account.Nickname again with a connection.</p>
+            }
+            <p class="modal-text"><a href="privacy" target="_blank" rel="noopener">Privacy</a></p>
+            <div class="modal-actions">
+                <button type="button" @onclick="SignOutAsync">Sign out</button>
+                <button type="button" class="secondary" @onclick="CloseAccount">Close</button>
+            </div>
+        </div>
+    </div>
+}
+
 @if (_showYahtzeeSplash)
 {
     <div class="overlay yahtzee-splash" @onclick="DismissSplash" role="alert">
@@ -371,6 +411,9 @@
     private bool _allowKeepCurrentColor;
     private string _colorPickerTitle = "Pick Pen Color";
     private bool _showResumePrompt;
+    private bool _showLeaderboard;
+    private bool _showAccount;
+    private int _pendingScores;
     private string? _pendingSaveJson;
     private ConfirmRequest? _confirm;
     private bool _showYahtzeeSplash;
@@ -393,15 +436,66 @@
     private string? ActiveDialog => _showColorPicker ? "color"
         : _showModePicker ? "mode"
         : _confirm != null ? "confirm"
+        : _showLeaderboard ? "leaderboard"
+        : _showAccount ? "account"
         : _showResumePrompt ? "resume"
         : null;
 
+    private string AccountLabel => $"Account: {Account.Nickname}";
+
+    private void OpenLeaderboard() => _showLeaderboard = true;
+
+    private void CloseLeaderboard() => _showLeaderboard = false;
+
+    private void OnLeaderboardKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            CloseLeaderboard();
+        }
+    }
+
+    private async Task OpenAccountAsync()
+    {
+        _pendingScores = await Queue.CountForCurrentUserAsync();
+        _showAccount = true;
+    }
+
+    private void CloseAccount() => _showAccount = false;
+
+    private void OnAccountKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            CloseAccount();
+        }
+    }
+
+    private async Task SignOutAsync()
+    {
+        _showAccount = false;
+        await Account.SignOutAsync();
+    }
+
+    // Uploads a finished game, or leaves it queued (offline, or the server is unavailable) to retry later.
+    private async Task SubmitFinishedGameAsync()
+    {
+        if (_engine.FinalScore is not int total)
+        {
+            return;
+        }
+
+        bool uploaded = await Queue.SubmitAsync(_engine.GameId, _engine.Mode, total);
+        string message = uploaded
+            ? "Score added to the leaderboard."
+            : "Score saved. It will upload when you are back online.";
+        _noticeText = message;
+        _announcement += " " + message;
+    }
+
     private bool HasOpenDialog => ActiveDialog != null;
 
-    // Every card in play fills one box per turn, so card 1 is enough to count turns.
-    private int? TurnNumber => _isGameStarted && !_engine.IsGameComplete
-        ? ScoreRules.UpperCategories.Concat(ScoreRules.LowerCategories).Count(c => _engine.Cards[0].Scores[c].IsFilled) + 1
-        : null;
+    private int? TurnNumber => _isGameStarted ? _engine.TurnNumber : null;
 
     private string ModeLabel => _engine.Mode == GameMode.FullSheet ? "Full Sheet" : "Single";
 
@@ -822,12 +916,22 @@
 
     private async Task UndoAsync()
     {
-        if (_isGameStarted && _engine.Undo())
+        if (_isGameStarted && _engine.CanUndo)
         {
-            _noticeText = string.Empty;
-            _announcement = "Last score undone.";
-            await RefreshOddsAfterRenderAsync();
-            await PersistAsync();
+            bool wasComplete = _engine.IsGameComplete;
+            Guid gameId = _engine.GameId;
+            if (_engine.Undo())
+            {
+                if (wasComplete)
+                {
+                    await Queue.DiscardAsync(gameId);
+                }
+
+                _noticeText = string.Empty;
+                _announcement = "Last score undone.";
+                await RefreshOddsAfterRenderAsync();
+                await PersistAsync();
+            }
         }
     }
 
@@ -883,6 +987,11 @@
         if (result.WasYahtzee)
         {
             OpenColorPicker("Yahtzee! Pick a pen color", true);
+        }
+
+        if (_engine.IsGameComplete)
+        {
+            await SubmitFinishedGameAsync();
         }
     }
 

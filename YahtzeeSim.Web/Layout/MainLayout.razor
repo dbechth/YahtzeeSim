@@ -1,6 +1,74 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AccountService Account
+@inject ScoreQueue Queue
+@inject IJSRuntime JS
+
 <div class="app-shell">
     <main>
-        @Body
+        @if (Account.State == AccountState.Loading)
+        {
+            <div class="gate"><p class="gate-lead" role="status">Checking sign-in&hellip;</p></div>
+        }
+        else if (Account.State == AccountState.SignedOut)
+        {
+            <SignInGate />
+        }
+        else if (string.IsNullOrEmpty(Account.Nickname))
+        {
+            <NicknameGate />
+        }
+        else
+        {
+            @Body
+        }
     </main>
 </div>
+
+@code {
+    private DotNetObjectReference<MainLayout>? _self;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Account.Changed += OnAccountChanged;
+        await Account.InitializeAsync();
+        await Queue.FlushAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _self = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("yahtzeeSimOnOnline", _self);
+        }
+        catch (JSException)
+        {
+            // Without the listener, queued scores simply upload on the next launch.
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnBackOnline()
+    {
+        if (Account.IsOffline)
+        {
+            await Account.InitializeAsync();
+        }
+
+        await Queue.FlushAsync();
+    }
+
+    private void OnAccountChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Account.Changed -= OnAccountChanged;
+        _self?.Dispose();
+    }
+}

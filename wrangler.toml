@@ -1,0 +1,10 @@
+name = "yahtzeesim"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "YahtzeeSim.Web/bin/Release/net9.0/publish/wwwroot"
+
+# Replace database_id with the id printed by `npx wrangler d1 create yahtzeesim`.
+# Local development ignores the id and uses a local SQLite file under .wrangler/.
+[[d1_databases]]
+binding = "DB"
+database_name = "yahtzeesim"
+database_id = "00000000-0000-0000-0000-000000000000"

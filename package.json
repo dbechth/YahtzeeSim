@@ -1,0 +1,19 @@
+{
+  "name": "yahtzeesim-functions",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Pages Functions (accounts and leaderboard API) for YahtzeeSim",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "dev": "wrangler pages dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261019.1",
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.0.0"
+  }
+}

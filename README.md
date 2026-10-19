@@ -5,6 +5,9 @@ Yahtzee simulator delivered as one web app (Blazor WebAssembly PWA):
 - `YahtzeeSim.Web`: the web front end
 - `YahtzeeSim.Engine`: the single game engine (no UI dependencies)
 - `YahtzeeSim.Engine.Tests`: engine unit tests (`dotnet test`)
+- `functions/`, `migrations/`, `wrangler.toml`: the account and leaderboard API (Cloudflare Pages Functions + D1), tested with `functions-tests/` (`npm test`)
+
+Players sign in with Google (no passwords are handled by this app), pick a nickname and appear on the leaderboard. See [Accounts and Leaderboard](#accounts-and-leaderboard).
 
 ## Web App Quick Start
 
@@ -95,3 +98,35 @@ $env:CLOUDFLARE_ACCOUNT_ID = "<account-id>"
 $env:CLOUDFLARE_PAGES_PROJECT_NAME = "<project-name>"
 ./scripts/deploy-cloudflare-pages.ps1
 ```
+## Accounts and Leaderboard
+
+Sign-in is required. The browser talks to `/api/*`, served by Cloudflare Pages Functions in `functions/` with scores stored in a D1 database. Only the Google account id and the chosen nickname are stored.
+
+### One-Time Setup
+
+1. **Google OAuth client** (Google Cloud Console -> APIs & Services -> Credentials -> Create OAuth client ID -> Web application):
+	- Authorized redirect URIs: `https://<your-project>.pages.dev/api/auth/callback` and, for local testing, `http://localhost:8788/api/auth/callback`
+	- On the consent screen set the privacy policy link to `https://<your-project>.pages.dev/privacy`
+2. **D1 database**: run `npx wrangler d1 create yahtzeesim` and paste the printed `database_id` into `wrangler.toml`.
+3. **Pages secrets** (Cloudflare dashboard -> your Pages project -> Settings -> Variables and Secrets, Production): add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+4. **API token**: add `Account -> D1 -> Edit` to the existing `CLOUDFLARE_API_TOKEN` so the deploy can apply migrations (`migrations/`).
+5. Push to `main` (or run the deploy workflow). Migrations are applied automatically; until step 2 is done the migration step is skipped with a warning.
+
+### Local Development
+
+Needs Node 22 or later.
+
+```powershell
+npm ci
+copy .dev.vars.example .dev.vars      # then fill in GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+dotnet publish .\YahtzeeSim.Web\YahtzeeSim.Web.csproj -c Release
+npx wrangler d1 migrations apply DB --local
+npx wrangler pages dev --port 8788    # open http://localhost:8788
+npm test                              # API unit tests
+```
+
+`dotnet run` alone serves only the static app, so sign-in needs the `wrangler pages dev` command above.
+
+### Adding Facebook Later
+
+Add a provider entry in `functions/_lib/providers.ts` (endpoints, scopes, claim checks), add its client id and secret as Pages secrets, and add a button in `YahtzeeSim.Web/Components/SignInGate.razor`.

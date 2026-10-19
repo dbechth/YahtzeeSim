@@ -9,7 +9,15 @@ self.addEventListener('message', event => {
         self.skipWaiting();
     }
 });
-self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
+// The account/leaderboard API (and its login redirects) must always go straight to the network:
+// never answer it from the cache or with the cached index.html navigation fallback.
+self.addEventListener('fetch', event => {
+    if (new URL(event.request.url).pathname.startsWith('/api/')) {
+        return;
+    }
+
+    event.respondWith(onFetch(event));
+});
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;

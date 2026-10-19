@@ -106,3 +106,167 @@ h1:focus {
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
+
+/* Sign-in and nickname gates, and plain document pages (privacy) */
+.gate {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    color: #ffffff;
+}
+
+.gate-card {
+    width: min(26rem, 100%);
+    padding: 1.5rem 1.4rem 1.2rem;
+    border-radius: 20px;
+    background: var(--paper);
+    color: var(--ink);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.gate-mark {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 0.5rem;
+    border-radius: 14px;
+    background: linear-gradient(145deg, var(--mint), var(--mint-deep));
+    color: var(--forest-dark);
+    font-size: 2rem;
+}
+
+.gate-card h1 {
+    margin: 0 0 0.4rem;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.7rem;
+    color: var(--forest);
+}
+
+.gate-card h1 span {
+    color: var(--mint-deep);
+}
+
+.gate-lead {
+    margin: 0 0 1rem;
+}
+
+.gate .gate-lead:only-child {
+    color: #ffffff;
+}
+
+.gate-fine {
+    margin: 0.7rem 0 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.gate-fine a {
+    color: var(--accent-dark);
+}
+
+.gate-error {
+    margin: 0.6rem 0;
+    color: #a12020;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.gate-error:empty {
+    display: none;
+}
+
+.gate-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: 2.9rem;
+    padding: 0 1.2rem;
+    border: 1px solid var(--accent-dark);
+    border-radius: 12px;
+    background: var(--accent);
+    color: #ffffff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.gate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.google-btn {
+    background: #ffffff;
+    color: #1f1f1f;
+    border-color: #747775;
+}
+
+.gate-btn:focus-visible,
+.gate-link:focus-visible,
+.gate-form input:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.gate-link {
+    margin-top: 0.8rem;
+    border: 0;
+    background: transparent;
+    color: var(--accent-dark);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+    min-height: 2.75rem;
+}
+
+.gate-form {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+}
+
+.gate-form label {
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.gate-form input {
+    min-height: 2.9rem;
+    padding: 0 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font: inherit;
+    font-size: 1rem;
+}
+
+.gate-form .gate-btn {
+    align-self: center;
+    margin-top: 0.6rem;
+}
+
+.doc-page {
+    flex: 1;
+    overflow-y: auto;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 1.2rem 1.4rem;
+    border-radius: 16px;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+}
+
+.doc-page h1,
+.doc-page h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--forest);
+}
+
+.doc-page a {
+    color: var(--accent-dark);
+}

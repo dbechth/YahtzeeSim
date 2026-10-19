@@ -35,6 +35,9 @@ Terminology: **Card** = one 13-category scoresheet (a "game" column G1–G6). **
 | UR-12 | I can use it on Android, Windows, iPhone and any device with a browser, from one web-based solution (no App Store). |
 | UR-13 | The app starts reliably, keeps working offline once installed, and I can recover from a bad cached/broken state. |
 | UR-14 | As the owner I can build, deploy and maintain it with one source of truth for the rules. |
+| UR-15 | I can sign in with my Google account (no separate password) and pick a nickname, so my scores belong to me. Facebook is planned later. |
+| UR-16 | I can see a leaderboard of the best scores, separately for Single and Full Sheet, for all time and for this week, and see where I rank. |
+| UR-17 | My finished games still count if I was offline when I finished them. |
 
 ## 3. Software requirements
 
@@ -154,10 +157,10 @@ Source links point to the file that implements the behaviour.
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
 | SW-PLT-01 | The product shall be delivered as one web-based solution (the Web PWA) running on Android, Windows and iPhone. The MAUI and WinForms projects shall be removed (history stays in git). Revisit if a single web solution proves not possible. | [YahtzeeSim.Web.csproj](../YahtzeeSim.Web/YahtzeeSim.Web.csproj) | UR-12 | 🟡 Done in code (MAUI and WinForms removed); device testing on Android and iPhone still needed |
-| SW-PLT-02 | The Web app shall be a Blazor WebAssembly (net9) static site with no server component. | [YahtzeeSim.Web.csproj](../YahtzeeSim.Web/YahtzeeSim.Web.csproj) | UR-12 | ✅ |
+| SW-PLT-02 | The Web app shall be a Blazor WebAssembly (net9) static site. The only server code is the small account and leaderboard API (section 3.11), run as Cloudflare Pages Functions with a D1 database. Game play itself needs no server. | [YahtzeeSim.Web.csproj](../YahtzeeSim.Web/YahtzeeSim.Web.csproj), [functions](../functions) | UR-12 | ✅ |
 | SW-PLT-03 | There shall be exactly one game engine: a class library `YahtzeeSim.Engine` (namespace `YahtzeeSim.Engine`) referenced by Web and the test project. No other copy of game logic shall exist. | YahtzeeSim.Web.csproj | UR-14 | ✅ |
 | SW-PLT-04 | The Web app shall publish a PWA manifest (standalone, any orientation, theme colour, dice-themed 192/512 and maskable icons) and Apple meta tags (standalone web-app mode, 180×180 touch icon, default status bar) so it can be added to an iOS/iPadOS/Android home screen and opens as a full-screen app. | [manifest.webmanifest](../YahtzeeSim.Web/wwwroot/manifest.webmanifest), [index.html](../YahtzeeSim.Web/wwwroot/index.html) | UR-12 | ✅ |
-| SW-PLT-05 | The Web app shall work offline once installed. A service worker shall cache the app shell and serve it network-first with a cached fallback, so users get the latest version when online. A stale or broken cache shall never block startup; "Reset app data" (SW-PLT-06) remains the recovery path. | index.html, [service-worker.published.js](../YahtzeeSim.Web/wwwroot/service-worker.published.js) | UR-13 | ✅ Verified on a published build: the app loads and resumes a saved game with the server stopped |
+| SW-PLT-05 | The Web app shall work offline once installed. A service worker shall cache the app shell and serve it network-first with a cached fallback, so users get the latest version when online. A stale or broken cache shall never block startup; "Reset app data" (SW-PLT-06) remains the recovery path. The worker shall never answer `/api/*` (including the sign-in redirects) from its cache. Because sign-in is required (SW-ACC-01), offline start relies on the cached profile (SW-ACC-07). | index.html, [service-worker.published.js](../YahtzeeSim.Web/wwwroot/service-worker.published.js) | UR-13 | ✅ Verified on a published build: the app loads and a game can be played and finished with the server stopped |
 | SW-PLT-06 | The Web app shall show an error bar with "Reload" and "Reset app data" (unregister workers, clear caches, reload). | index.html (`__yahtzeeSimResetApp`) | UR-13 | ✅ |
 | SW-PLT-07 | Game state shall be autosaved after every action. On launch the app shall offer to resume the saved game, and New Game shall clear it. Corrupt or incompatible saved data shall be discarded. | Web `PersistAsync` (localStorage keys `yahtzeesim.save`, `yahtzeesim.pen`), engine `Serialize`/`TryLoad` | UR-01 | ✅ |
 
@@ -165,14 +168,35 @@ Source links point to the file that implements the behaviour.
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
-| SW-OPS-01 | A GitHub Actions workflow shall deploy the Web app on push to `main` (paths `YahtzeeSim.Web/**` or the workflow file) and on manual dispatch. | [deploy-cloudflare-pages.yml](../.github/workflows/deploy-cloudflare-pages.yml) | UR-14 | ✅ |
-| SW-OPS-02 | The workflow shall validate the three Cloudflare secrets, publish Release, verify the Pages project exists (listing available projects on failure), then deploy with Wrangler to production. | same | UR-14 | ✅ |
-| SW-OPS-03 | A local PowerShell script shall publish and deploy using the same environment variables. | [deploy-cloudflare-pages.ps1](../scripts/deploy-cloudflare-pages.ps1) | UR-14 | ✅ |
+| SW-OPS-01 | A GitHub Actions workflow shall deploy the Web app and API on push to `main` (paths for the Web, Engine, tests, `functions/`, `migrations/`, `wrangler.toml`, `package*.json` or the workflow file) and on manual dispatch. | [deploy-cloudflare-pages.yml](../.github/workflows/deploy-cloudflare-pages.yml) | UR-14 | ✅ |
+| SW-OPS-02 | The workflow shall validate the three Cloudflare secrets, type-check and test the API, publish Release, verify the Pages project exists (listing available projects on failure), apply pending D1 migrations (skipped with a warning while `wrangler.toml` still has the placeholder database id), then deploy with Wrangler to production from the repository root so `functions/` is included. | same | UR-14 | ✅ |
+| SW-OPS-03 | A local PowerShell script shall publish and deploy using the same environment variables, from the repository root. | [deploy-cloudflare-pages.ps1](../scripts/deploy-cloudflare-pages.ps1) | UR-14 | ✅ |
 | SW-OPS-04 | The host shall send `no-store` for `index.html`, service-worker files and the manifest, and `nosniff` for all files. | [_headers](../YahtzeeSim.Web/wwwroot/_headers) | UR-13 | ✅ |
-| SW-OPS-05 | Engine unit tests shall cover every SW-RUL, SW-TRN, SW-SCR and SW-UND requirement and run in CI on every push; a failing test shall block the Web deploy. | [YahtzeeSim.Engine.Tests](../YahtzeeSim.Engine.Tests), [ci.yml](../.github/workflows/ci.yml), [deploy-cloudflare-pages.yml](../.github/workflows/deploy-cloudflare-pages.yml) | UR-14 | ✅ |
+| SW-OPS-05 | Engine unit tests shall cover every SW-RUL, SW-TRN, SW-SCR and SW-UND requirement, and the API tests (vitest, `functions-tests/`) shall cover validation, sessions and leaderboard logic; both run in CI on every push, and a failure blocks the deploy. | [YahtzeeSim.Engine.Tests](../YahtzeeSim.Engine.Tests), [ci.yml](../.github/workflows/ci.yml), [deploy-cloudflare-pages.yml](../.github/workflows/deploy-cloudflare-pages.yml) | UR-14 | ✅ |
 | SW-NFR-01 | The engine shall have no dependency on any UI framework. | Engine folder | UR-14 | ✅ |
 | SW-NFR-02 | Updating the odds after a roll, undo or hold toggle shall take under 100 ms on a mid-range phone; if it exceeds that, the calculation shall move off the UI thread. | `ProbabilityCalculator` | UR-11 | 🟡 Engine test asserts under 100 ms natively; in an unoptimised browser build the odds are drawn after the dice so the UI stays responsive. On-phone timing still to be confirmed |
 | SW-NFR-03 | The number of cards per sheet shall be fixed at six (`GameCount`). | `YahtzeeGameEngine.GameCount` | UR-05 | ✅ |
+
+### 3.11 Accounts and leaderboard (ACC, LDB)
+
+Accounts use the provider's own sign-in; the app never handles or stores a password. Only Google is enabled; Facebook can be added as another entry in [providers.ts](../functions/_lib/providers.ts). Scores are trusted from the client and only sanity-checked (SW-LDB-03).
+
+| ID | Requirement | Source | UR | Status |
+|---|---|---|---|---|
+| SW-ACC-01 | The app shall require sign-in before play. The sign-in screen offers "Sign in with Google" and a link to the privacy page. | [SignInGate.razor](../YahtzeeSim.Web/Components/SignInGate.razor), [MainLayout.razor](../YahtzeeSim.Web/Layout/MainLayout.razor) | UR-15 | ✅ |
+| SW-ACC-02 | Sign-in shall use the OAuth authorization-code flow with PKCE, state and nonce, performed on the server (`/api/auth/login`, `/api/auth/callback`), requesting only the `openid` scope. The ID token claims (issuer, audience, expiry, nonce, subject) shall be checked. The client secret shall only exist as a Pages secret. | [functions/api/auth](../functions/api/auth), [providers.ts](../functions/_lib/providers.ts) | UR-15 | ✅ Verified locally up to the Google redirect; the real round trip needs the owner's Google credentials |
+| SW-ACC-03 | A user shall be identified by (provider, provider subject id). No email, name or photo shall be stored. | [0001_init.sql](../migrations/0001_init.sql) | UR-15 | ✅ |
+| SW-ACC-04 | A signed-in session shall be a random token in an `HttpOnly`, `SameSite=Lax`, `Secure` (on https) cookie valid for 30 days. Only the SHA-256 hash of the token shall be stored. Sign-out shall delete the session and cookie. | [http.ts](../functions/_lib/http.ts), [cookies.ts](../functions/_lib/cookies.ts), [logout.ts](../functions/api/auth/logout.ts) | UR-15 | ✅ |
+| SW-ACC-05 | A first-time user shall pick a unique nickname (3 to 16 letters, numbers, spaces, `_` or `-`, starting and ending with a letter or number; uniqueness is case-insensitive) before playing. | [NicknameGate.razor](../YahtzeeSim.Web/Components/NicknameGate.razor), [validate.ts](../functions/_lib/validate.ts), [me.ts](../functions/api/me.ts) | UR-15 | ✅ |
+| SW-ACC-06 | State-changing API calls shall require a JSON content type and, when an `Origin` header is sent, the same origin as the request (CSRF protection). API responses shall be `no-store`. | [http.ts](../functions/_lib/http.ts) | UR-15 | ✅ |
+| SW-ACC-07 | When the server cannot be reached (offline, 5xx or a non-JSON reply) the app shall use the cached profile from the last successful sign-in so the game stays playable; a definite 401 shall sign the user out. | [AccountService.cs](../YahtzeeSim.Web/Services/AccountService.cs) | UR-13, UR-17 | ✅ |
+| SW-ACC-08 | An account menu shall show the signed-in nickname and a Sign out button. A privacy page (`/privacy`) shall explain what is stored. | [Home.razor](../YahtzeeSim.Web/Pages/Home.razor), [Privacy.razor](../YahtzeeSim.Web/Pages/Privacy.razor) | UR-15 | ✅ |
+| SW-LDB-01 | Each game shall have a stable `GameId` that survives save/load. A completed game exposes `FinalScore` (the game total in Single mode, the card total in Full Sheet mode). | [YahtzeeGameEngine.cs](../YahtzeeSim.Engine/YahtzeeGameEngine.cs) | UR-16 | ✅ |
+| SW-LDB-02 | When a game completes, the app shall submit (game id, mode, total) once. Re-sending the same game id replaces the earlier score, so undoing and re-scoring the last box does not create duplicates. | [Home.razor](../YahtzeeSim.Web/Pages/Home.razor), [scores.ts](../functions/api/scores.ts) | UR-16 | ✅ |
+| SW-LDB-03 | The server shall reject totals outside the possible range (Single 0 to 1575, Full Sheet 0 to 2250), unknown modes, users without a nickname, and more than 20 new scores per hour. | [validate.ts](../functions/_lib/validate.ts), [scores.ts](../functions/api/scores.ts) | UR-16 | ✅ |
+| SW-LDB-04 | A game finished offline shall be queued in browser storage and uploaded after the app is back online or on the next launch. Entries are tagged with the user id, retried on temporary failures and dropped on permanent ones. | [ScoreQueue.cs](../YahtzeeSim.Web/Services/ScoreQueue.cs) | UR-17 | ✅ Verified: played a game offline, score queued, uploaded after reconnect |
+| SW-LDB-05 | The leaderboard shall rank each player by their best score, with separate Single and Full Sheet boards and All-time and This-week (calendar week from Monday 00:00 UTC) views. It shows the top 50, shares the rank on ties, highlights the signed-in player and shows their rank even when outside the top 50. | [leaderboard.ts](../functions/api/leaderboard.ts), [LeaderboardView.razor](../YahtzeeSim.Web/Components/LeaderboardView.razor) | UR-16 | ✅ |
+| SW-LDB-06 | The leaderboard is opened from a top-bar button as a dialog over the game (so a game in progress is never lost) and requires an internet connection. | [Home.razor](../YahtzeeSim.Web/Pages/Home.razor) | UR-16 | ✅ |
 
 ## 4. Traceability matrix (UR → SW)
 
@@ -190,8 +214,11 @@ Source links point to the file that implements the behaviour.
 | UR-10 Automatic totals | SCR-03, SCR-04, SCR-05 |
 | UR-11 Touch / responsive | UIW-02, UIW-07, UIW-09, UIW-10, UIW-11, UIW-12, UIW-13, NFR-02 |
 | UR-12 Cross-platform | UIW-01, PLT-01, PLT-02, PLT-04 |
-| UR-13 Reliable start / recovery | PLT-05, PLT-06, OPS-04 |
+| UR-13 Reliable start / recovery | PLT-05, PLT-06, OPS-04, ACC-07 |
 | UR-14 Maintainable / deployable | PLT-03, OPS-01, OPS-02, OPS-03, OPS-05, NFR-01 |
+| UR-15 Sign in and nickname | ACC-01 … ACC-08 |
+| UR-16 Leaderboard | LDB-01, LDB-02, LDB-03, LDB-05, LDB-06 |
+| UR-17 Offline games still count | ACC-07, LDB-04 |
 
 ## 5. Remaining work
 
@@ -201,6 +228,7 @@ The restructure, clean-up and all decided behaviour are done. What is left:
 2. **Measure the odds update on a phone** (SW-NFR-02). If it is over 100 ms, reduce the Monte-Carlo trial count or move the work to a Web Worker.
 3. **Move shared presentation logic out of the page** (pace text, card-total display, contrast colour) into the engine library so it can be unit tested.
 4. **Optional:** hide probabilities for filled categories (declined for now, SW-PRB-06).
+5. **Accounts and leaderboard (one-time owner setup):** create the Google OAuth client and the D1 database and add the Pages secrets (see the README); test a real Google sign-in. Add Facebook later as a second provider. Scores are trusted from the client, so add stronger anti-cheat only if abuse appears.
 
 ## 6. Decisions
 
