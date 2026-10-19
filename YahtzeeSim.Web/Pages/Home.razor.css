@@ -1,4 +1,5 @@
-/* Narrow layout is the base. The wide layout at the end overrides it. */
+/* One layout for every screen: the page fills the viewport and the score table stretches to use the height.
+   Page scroll happens only when the viewport is shorter than the minimum row heights. */
 
 .sr-only,
 .cat-head,
@@ -15,6 +16,10 @@
 }
 
 .game-page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     background: var(--shell);
     border-radius: 16px;
     overflow-x: clip;
@@ -48,10 +53,9 @@ button:disabled {
 .topbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 0.75rem;
-    min-height: 3.5rem;
-    padding: 0 0.9rem;
+    min-height: 2.75rem;
+    padding: 0 0.7rem;
     background: var(--forest-dark);
     border-radius: 16px 16px 0 0;
 }
@@ -59,21 +63,21 @@ button:disabled {
 .brand {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    margin: 0;
-    font-size: 1.15rem;
+    gap: 0.5rem;
+    margin: 0 auto 0 0;
+    font-size: 1.1rem;
     line-height: 1;
 }
 
 .brand-mark {
     display: grid;
     place-items: center;
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 1.8rem;
+    height: 1.8rem;
     border-radius: 9px;
     background: linear-gradient(145deg, var(--mint), var(--mint-deep));
     color: var(--forest-dark);
-    font-size: 1.3rem;
+    font-size: 1.25rem;
 }
 
 .brand-name {
@@ -87,15 +91,36 @@ button:disabled {
     color: var(--mint);
 }
 
+.top-total {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    color: #ffffff;
+}
+
+.top-total span {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b9d4c4;
+}
+
+.top-total strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.15rem;
+}
+
 .new-game {
     min-height: 2.75rem;
-    padding: 0 1rem;
+    padding: 0 0.9rem;
     border: 1px solid rgba(184, 239, 199, 0.55);
     border-radius: 999px;
     background: rgba(184, 239, 199, 0.1);
     color: var(--mint);
     font-size: 0.85rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .new-game:hover {
@@ -103,19 +128,29 @@ button:disabled {
 }
 
 .content {
-    padding: 0.7rem 0.6rem 0.8rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    padding: 0.5rem;
 }
 
 .play-layout {
-    display: grid;
-    gap: 0.7rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
 }
 
 /* Turn card */
 
 .turn-card {
-    padding: 0.9rem;
-    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    padding: 0.6rem 0.7rem 0.7rem;
+    border-radius: 16px;
     background: linear-gradient(160deg, #285c4e 0%, #17382f 100%);
     color: #eaf5ee;
     box-shadow: 0 10px 24px rgba(16, 42, 37, 0.25);
@@ -126,11 +161,10 @@ button:disabled {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    min-height: 1.6rem;
 }
 
 .turn-mode {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 800;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -138,10 +172,10 @@ button:disabled {
 }
 
 .round-pill {
-    padding: 0.15rem 0.65rem;
+    padding: 0.05rem 0.6rem;
     border: 1px solid rgba(184, 239, 199, 0.5);
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 800;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -149,36 +183,37 @@ button:disabled {
 }
 
 .turn-title {
-    margin: 0.5rem 0 0.25rem;
+    margin: 0.2rem 0 0.1rem;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: 700;
     line-height: 1.15;
     color: #ffffff;
 }
 
 .turn-hint {
-    margin: 0 0 0.6rem;
-    font-size: 0.85rem;
-    line-height: 1.35;
+    margin: 0 0 0.35rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
     color: #d3e7da;
 }
 
 .notice {
-    margin-bottom: 0.6rem;
-    padding: 0.35rem 0.6rem;
+    margin-bottom: 0.4rem;
+    padding: 0.2rem 0.5rem;
     border: 1px solid rgba(244, 198, 106, 0.7);
     border-radius: 10px;
     background: rgba(244, 198, 106, 0.16);
     color: #fbe6b4;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
 }
 
 .roll-progress {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.4rem;
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.45rem;
 }
 
 .roll-progress span {
@@ -194,11 +229,13 @@ button:disabled {
 /* Dice and controls */
 
 .dice-row {
+    flex: 1;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.4rem;
-    margin-bottom: 0.7rem;
-    padding: 0.55rem 0.5rem 0.65rem;
+    gap: 0.35rem;
+    align-content: center;
+    margin-bottom: 0.5rem;
+    padding: 0.45rem 0.4rem 0.55rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 14px;
     background: rgba(0, 0, 0, 0.2);
@@ -207,13 +244,15 @@ button:disabled {
 .die {
     position: relative;
     width: 100%;
+    max-height: 4.6rem;
     aspect-ratio: 1 / 1;
+    justify-self: center;
     border-radius: 12px;
     border: 2px solid transparent;
     background: var(--die);
     box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
     color: var(--forest-dark);
-    font-size: clamp(2rem, 11vw, 2.8rem);
+    font-size: clamp(1.7rem, 9vw, 2.6rem);
     line-height: 1;
     padding: 0;
     display: grid;
@@ -245,7 +284,7 @@ button:disabled {
     bottom: 2px;
     left: 0;
     right: 0;
-    font-size: 0.58rem;
+    font-size: 0.55rem;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -265,7 +304,7 @@ button:disabled {
     align-items: center;
     justify-content: space-between;
     gap: 0.6rem;
-    min-height: 3rem;
+    min-height: 2.75rem;
     padding: 0 0.7rem 0 1rem;
     border: 0;
     border-radius: 12px;
@@ -281,7 +320,7 @@ button:disabled {
 
 .keycap {
     min-width: 2.2rem;
-    padding: 0.15rem 0.4rem;
+    padding: 0.1rem 0.4rem;
     border: 1px solid currentColor;
     border-radius: 7px;
     font-size: 0.75rem;
@@ -314,21 +353,31 @@ button:disabled {
     opacity: 0.8;
 }
 
-/* Score card: narrow layout shows each category as a name line and a row of six labelled targets */
+/* Score card. The table is the same on every screen; it stretches to fill the height left over. */
+
+.card-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
 
 .score-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     border: 1px solid var(--line);
-    border-radius: 18px;
+    border-radius: 16px;
     background: var(--paper);
     overflow: clip;
 }
 
 .sheet-head {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.6rem 0.8rem;
+    padding: 0.35rem 0.9rem;
     border-bottom: 1px solid var(--line);
 }
 
@@ -366,90 +415,99 @@ button:disabled {
     color: var(--forest);
 }
 
+.score-scroll {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
 .score-grid {
-    display: block;
+    flex: 1;
     width: 100%;
-    font-size: 0.95rem;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: clamp(0.62rem, 2.9vw, 0.8rem);
 }
 
-.score-grid colgroup {
-    display: none;
+.score-grid .col-category {
+    width: 29%;
 }
 
-.score-grid thead {
-    display: block;
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: var(--section);
-    border-bottom: 1px solid var(--line);
+.score-grid .col-prob {
+    width: 10%;
 }
 
-.score-grid tbody {
-    display: block;
-}
-
-.score-grid tr {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    column-gap: 3px;
-    padding: 0 0.4rem;
+.score-grid .col-game {
+    width: 10.17%;
 }
 
 .score-grid th,
 .score-grid td {
-    display: block;
-    padding: 0;
+    padding: 0 1px;
+    border-bottom: 1px solid var(--rule);
     text-align: center;
-    min-width: 0;
+    vertical-align: middle;
 }
 
 .score-grid th {
-    padding: 0.35rem 0;
-    font-size: 0.7rem;
+    height: 1.2rem;
+    background: var(--section);
+    font-size: 0.62rem;
     font-weight: 800;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
 }
 
+.score-grid .cat-head,
+.score-grid .odds-head {
+    position: static;
+    width: auto;
+    height: 1.2rem;
+    margin: 0;
+    padding: 0 1px;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+}
+
+.score-grid .cat-head {
+    padding-left: 0.5rem;
+    text-align: left;
+}
+
 .score-grid .row-label {
-    grid-column: span 4;
-    padding: 0.45rem 0 0.15rem 0.1rem;
+    padding: 0 1px 0 0.5rem;
     text-align: left;
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.1;
     color: var(--forest);
 }
 
 .score-grid .odds-col {
-    grid-column: span 2;
-    align-self: end;
-    padding: 0 0.1rem 0.15rem 0;
-    text-align: right;
-    font-size: 0.8rem;
+    font-size: 0.85em;
     color: var(--muted);
 }
 
 .odds-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    display: none;
 }
 
 .hint {
-    font-size: 0.75rem;
+    font-size: 0.85em;
     font-weight: 400;
     color: var(--muted);
 }
 
-.score-row,
-.pace-row,
-.totals-row,
-.yahtzee-bonus-row {
-    border-bottom: 1px solid var(--rule);
-    padding-bottom: 0.35rem;
+.score-row td,
+.pace-row td,
+.totals-row td,
+.yahtzee-bonus-row td {
+    height: 1rem;
+}
+
+.score-row td {
+    height: 1.2rem;
 }
 
 .section-row {
@@ -457,10 +515,10 @@ button:disabled {
 }
 
 .section-row td {
-    grid-column: 1 / -1;
-    padding: 0.3rem 0.1rem;
+    height: 1rem;
+    padding: 0 0.5rem;
     text-align: left;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -492,35 +550,14 @@ button:disabled {
     background: #eeeee5;
 }
 
-.totals-row .row-label,
-.yahtzee-bonus-row .row-label {
-    grid-column: 1 / -1;
-}
-
-.totals-row .odds-col,
-.yahtzee-bonus-row .odds-col {
-    display: none;
-}
-
 .totals-row .game-cell,
 .yahtzee-bonus-row .game-cell {
-    padding: 0.2rem 0;
     font-weight: 700;
     color: var(--forest);
 }
 
 .grand-row {
     background: #e2e7da;
-}
-
-.card-total-row .card-total-value {
-    grid-column: 1 / -1;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 1.15rem;
-}
-
-.card-total-row .filler {
-    display: none;
 }
 
 .bonus-marks {
@@ -532,17 +569,22 @@ button:disabled {
     color: #5f6a63;
 }
 
-/* Score targets. Border style, not just colour, tells the states apart. */
+/* Score targets fill their cell. Border style, not just colour, tells the states apart. */
+
+.score-grid td.game-cell {
+    position: relative;
+}
 
 .score-btn {
-    width: 100%;
-    min-height: 2.75rem;
+    position: absolute;
+    inset: 1px;
+    width: auto;
     padding: 0;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid #dadccf;
     background: #fffef9;
     color: #1f2937;
-    font-size: 1rem;
+    font-size: 1em;
     font-weight: 700;
 }
 
@@ -551,7 +593,8 @@ button:disabled {
 }
 
 .score-btn.valid {
-    border: 2px solid var(--mint-deep);
+    border: 1px solid var(--mint-deep);
+    box-shadow: inset 0 0 0 1px var(--mint-deep);
     background: #eaf7ec;
     color: #1d5a3c;
 }
@@ -583,36 +626,40 @@ button:disabled {
 }
 
 .score-btn:focus-visible {
-    position: relative;
     z-index: 2;
     outline-offset: -3px;
 }
-
 /* Full Sheet summary */
 
 .summary-panel {
-    margin-top: 0.7rem;
-    border: 1px solid var(--mint-deep);
-    border-radius: 18px;
-    background: #e8f5ea;
-    padding: 0.8rem 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid rgba(184, 239, 199, 0.35);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.2);
+    color: #eaf5ee;
 }
 
 .summary-panel h2 {
-    margin: 0 0 0.35rem;
+    margin: 0 0 0.2rem;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 1.2rem;
-    color: var(--forest);
+    font-size: 1rem;
+    color: var(--mint);
 }
 
 .summary-text {
-    font-size: 0.9rem;
-    line-height: 1.5;
+    font-size: 0.7rem;
+    line-height: 1.35;
 }
 
 .series-total {
-    margin-top: 0.25rem;
+    margin-top: 0.2rem;
     font-weight: 800;
+    color: var(--gold);
 }
 /* Dialogs */
 
@@ -798,36 +845,96 @@ button:disabled {
     }
 }
 
-/* Very narrow screens: trim padding so each of the six targets stays at least 44px wide. */
-@media (max-width: 400px) {
+
+/* Narrow and portrait: shrink the turn card so the whole score table stays on screen. */
+@media (max-width: 759px), (max-aspect-ratio: 1/1), (max-height: 559px) {
     .content {
-        padding: 0.5rem 0.3rem 0.6rem;
+        padding: 0.35rem;
+        gap: 0.35rem;
     }
 
-    .score-grid tr {
-        column-gap: 2px;
-        padding: 0 0.25rem;
+    .play-layout {
+        gap: 0.35rem;
     }
 
     .turn-card {
-        padding: 0.75rem;
+        padding: 0.45rem 0.6rem 0.55rem;
+    }
+
+    .turn-title {
+        margin: 0.1rem 0 0;
+        font-size: 1.1rem;
+    }
+
+    .turn-hint,
+    .notice {
+        margin: 0 0 0.3rem;
+        font-size: 0.72rem;
+        line-height: 1.2;
+    }
+
+    .turn-card:has(.notice) .turn-hint {
+        display: none;
+    }
+
+    .roll-progress {
+        display: none;
     }
 
     .dice-row {
+        flex: 0 0 auto;
         gap: 0.3rem;
-        padding: 0.45rem 0.35rem 0.55rem;
+        margin-bottom: 0.4rem;
+        padding: 0.35rem 0.35rem 0.45rem;
+    }
+
+    .pace-note,
+    .yahtzee-bonus-row .hint {
+        display: none;
+    }
+
+    .die {
+        max-height: 3.3rem;
     }
 }
-/* Wide layout: landscape, at least 760 x 560. Turn card sits beside the full six-column card. */
+
+/* Short portrait screens: drop the one-line hint; the roll count on the Roll button still shows progress. */
+@media (max-height: 700px) and (max-width: 759px), (max-height: 700px) and (max-aspect-ratio: 1/1) {
+    .turn-hint {
+        display: none;
+    }
+
+    .turn-title {
+        font-size: 1rem;
+    }
+
+    .dice-row {
+        padding: 0.3rem 0.3rem 0.4rem;
+    }
+}
+@media (max-width: 359px) {
+    .top-total span {
+        display: none;
+    }
+
+    .brand-name {
+        font-size: 1rem;
+    }
+}
+
+/* Wide layout: landscape, at least 760 x 560. The turn card sits beside the score card and fills the height. */
 @media (min-width: 760px) and (min-aspect-ratio: 1/1) and (min-height: 560px) {
     .game-page {
         border-radius: 20px;
     }
 
     .topbar {
-        min-height: 3rem;
         padding: 0 1.1rem;
         border-radius: 20px 20px 0 0;
+    }
+
+    .top-total {
+        display: none;
     }
 
     .new-game {
@@ -839,41 +946,84 @@ button:disabled {
     }
 
     .play-layout {
-        grid-template-columns: minmax(17rem, 0.78fr) minmax(0, 1.72fr);
+        flex-direction: row;
         gap: 0.75rem;
-        align-items: start;
-    }
-
-    .play-panel {
-        position: sticky;
-        top: 0.5rem;
     }
 
     .turn-card {
-        padding: 1.1rem;
+        flex: 0 0 clamp(16rem, 27%, 24rem);
+        padding: 1rem 1.1rem;
+    }
+
+    .card-panel {
+        flex: 1;
+        min-width: 0;
     }
 
     .turn-title {
-        font-size: 1.6rem;
+        margin-top: 0.5rem;
+        font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+    }
+
+    .turn-hint {
+        font-size: 0.85rem;
+        margin-bottom: 0.7rem;
+    }
+
+    .roll-progress {
+        margin-bottom: 0.8rem;
+    }
+
+    /* Three dice over two, so the dice get as large as the column allows. */
+    .dice-row {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.7rem 0.6rem;
+        margin-bottom: 0.8rem;
+        padding: 0.8rem 0.7rem 0.9rem;
+    }
+
+    .dice-row .die {
+        grid-column: span 2;
+    }
+
+    .dice-row .die:nth-child(4) {
+        grid-column: 2 / span 2;
+    }
+
+    .dice-row .die:nth-child(5) {
+        grid-column: 4 / span 2;
     }
 
     .die {
-        font-size: 2.6rem;
+        max-height: none;
+        max-width: 6.5rem;
+        border-radius: 16px;
+        font-size: clamp(2.4rem, 4.6vw, 4rem);
+    }
+
+    .die-tag {
+        font-size: 0.65rem;
+        bottom: 4px;
+    }
+
+    .action-row .roll {
+        min-height: 3.25rem;
     }
 
     .sheet-head {
-        padding: 0.25rem 0.9rem;
+        display: flex;
+    }
+
+    .summary-text {
+        font-size: 0.85rem;
+    }
+
+    .summary-panel h2 {
+        font-size: 1.2rem;
     }
 
     .score-grid {
-        display: table;
-        table-layout: fixed;
-        border-collapse: collapse;
-        font-size: 0.8rem;
-    }
-
-    .score-grid colgroup {
-        display: table-column-group;
+        font-size: clamp(0.72rem, 1.45vh + 0.2rem, 0.95rem);
     }
 
     .score-grid .col-category {
@@ -888,111 +1038,19 @@ button:disabled {
         width: 10.33%;
     }
 
-    .score-grid thead {
-        display: table-header-group;
-        position: static;
-    }
-
-    .score-grid tbody {
-        display: table-row-group;
-    }
-
-    .score-grid tr {
-        display: table-row;
-        padding: 0;
-    }
-
     .score-grid th,
     .score-grid td {
-        display: table-cell;
         padding: 0 2px;
-        border-bottom: 1px solid var(--rule);
-        vertical-align: middle;
     }
 
-    .score-grid th {
-        background: var(--section);
-        font-size: 0.65rem;
-    }
-
+    .score-grid .row-label,
     .score-grid .cat-head,
-    .score-grid .odds-head {
-        position: static;
-        width: auto;
-        height: auto;
-        margin: 0;
-        padding: 3px 2px;
-        overflow: visible;
-        clip-path: none;
-        white-space: normal;
-    }
-
-    .score-grid .cat-head {
-        padding-left: 1rem;
-        text-align: left;
-    }
-
-    .score-grid .row-label {
-        padding: 1px 2px 1px 1rem;
-        overflow-wrap: anywhere;
-    }
-
-    .score-grid .odds-col {
-        padding: 1px;
-        text-align: center;
-        font-size: 0.7rem;
-    }
-
-    .totals-row .odds-col,
-    .yahtzee-bonus-row .odds-col {
-        display: table-cell;
-    }
-
-    .odds-label {
-        display: none;
-    }
-
-    .score-row,
-    .pace-row,
-    .totals-row,
-    .yahtzee-bonus-row {
-        padding-bottom: 0;
-    }
-
     .section-row td {
-        padding: 2px 1rem;
-    }
-
-    .totals-row .game-cell,
-    .yahtzee-bonus-row .game-cell {
-        padding: 1px 2px;
-    }
-
-    .card-total-row .card-total-value {
-        font-size: inherit;
-        font-family: inherit;
-    }
-
-    .card-total-row .filler {
-        display: table-cell;
+        padding-left: 1rem;
     }
 
     .score-btn {
-        min-height: clamp(1.1rem, calc((100dvh - 16.5rem) / 23 - 2px), 2.1rem);
-        font-size: 0.8rem;
-        border-radius: 6px;
-    }
-
-    .score-btn.valid,
-    .score-btn.scratch {
-        border-width: 1px;
-    }
-
-    .score-btn.valid {
-        box-shadow: inset 0 0 0 1px var(--mint-deep);
-    }
-
-    .score-btn.scratch {
-        box-shadow: inset 0 0 0 1px #a8620f;
+        inset: 2px;
+        border-radius: 7px;
     }
 }

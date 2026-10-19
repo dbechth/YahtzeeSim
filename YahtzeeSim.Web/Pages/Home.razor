@@ -11,6 +11,7 @@
         <span class="brand-mark" aria-hidden="true">&#9860;</span>
         <span class="brand-name">Yahtzee<span>Sim</span></span>
     </h1>
+    <div class="top-total" aria-hidden="true"><span>Total</span><strong>@GetCardTotalDisplay()</strong></div>
     <button type="button" class="new-game" @onclick="StartGameButtonClicked">New Game</button>
   </header>
   <div class="content">
@@ -38,6 +39,22 @@
         }
     </div>
 
+    @if (_engine.Mode == GameMode.FullSheet && _engine.Cards.All(c => c.IsComplete))
+    {
+        <section class="summary-panel" aria-labelledby="summary-title">
+            <h2 id="summary-title">Full Sheet Complete</h2>
+            <div class="summary-text">
+                @for (int gameIndex = 0; gameIndex < YahtzeeGameEngine.GameCount; gameIndex++)
+                {
+                    var card = _engine.Cards[gameIndex];
+                    <div>Game @(gameIndex + 1): Upper @(card.UpperSubtotal ?? 0), Lower @(card.LowerSubtotal ?? 0), Bonus @(card.UpperBonus ?? 0), Total @(card.GameTotal ?? 0)</div>
+                }
+                <div class="series-total">Series total: @(_engine.Cards.Sum(c => c.GameTotal ?? 0))</div>
+            </div>
+        </section>
+    }
+    else
+    {
     <section class="dice-row" aria-label="Dice">
         @foreach (var (die, index) in _engine.Dice.Select((d, i) => (d, i)))
         {
@@ -58,6 +75,7 @@
             </button>
         }
     </section>
+    }
 
     <section class="action-row" aria-label="Turn controls">
         <button
@@ -79,7 +97,7 @@
     <section class="score-wrap sheet-card">
         <div class="sheet-head">
             <h2 class="sheet-heading">Scorecard<span> &middot; @(_engine.Mode == GameMode.Single ? "one game" : "six games")</span></h2>
-            <div class="series-total-chip"><span>Total</span><strong>@GetCardTotalDisplay()</strong></div>
+            <div class="series-total-chip" aria-hidden="true"><span>Total</span><strong>@GetCardTotalDisplay()</strong></div>
         </div>
         <div class="score-scroll">
         <table class="score-grid" role="table" aria-label="Score card for six games. Choose one open cell to score this turn.">
@@ -106,7 +124,7 @@
             <tbody role="rowgroup">
                 <tr role="row" class="pace-row">
                     <td role="rowheader" class="row-label">Upper Pace</td>
-                    <td role="cell" class="odds-col">vs 3 of each</td>
+                    <td role="cell" class="odds-col"><span class="pace-note">vs 3 of each</span></td>
                     @for (int game = 0; game < YahtzeeGameEngine.GameCount; game++)
                     {
                         <td role="cell" class="game-cell pace-tone @GetPaceToneClass(game) @GetColumnClass(game)">@GetUpperPaceText(game)</td>
@@ -186,20 +204,6 @@
    </div>
   </div>
 
-    @if (_engine.Mode == GameMode.FullSheet && _engine.Cards.All(c => c.IsComplete))
-    {
-        <section class="summary-panel" aria-labelledby="summary-title">
-            <h2 id="summary-title">Full Sheet Complete</h2>
-            <div class="summary-text">
-                @for (int gameIndex = 0; gameIndex < YahtzeeGameEngine.GameCount; gameIndex++)
-                {
-                    var card = _engine.Cards[gameIndex];
-                    <div>Game @(gameIndex + 1): Upper @(card.UpperSubtotal ?? 0), Lower @(card.LowerSubtotal ?? 0), Bonus @(card.UpperBonus ?? 0), Total @(card.GameTotal ?? 0)</div>
-                }
-                <div class="series-total">Series total: @(_engine.Cards.Sum(c => c.GameTotal ?? 0))</div>
-            </div>
-        </section>
-    }
   </div>
 </div>
 

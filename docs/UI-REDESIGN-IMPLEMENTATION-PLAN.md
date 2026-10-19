@@ -37,15 +37,15 @@ In particular, Full Sheet does **not** mean six sequential games, one shared han
 - Keep the score sheet as the main destination-selection surface. A player must be able to compare the current hand against all six cards without changing views.
 - Keep the title and current turn state compact. Give dice, Roll, Undo, score destinations, category names and totals the strongest hierarchy.
 - Follow the visual language of `YahtzeeSim-redesign-concept.html`: dark forest page with a rounded cream app shell, a dark topbar with the YahtzeeSim brand, a dark-green turn card (roll-progress segments, cream dice that lift and gain a gold border when held, a mint Roll button and a text Undo) beside a cream scorecard card with a serif header and uppercase column labels. Do not copy its placeholder data, Settings button, tap-again scratch confirmation or omitted features. Use color as reinforcement, not the only signal for state.
-- Keep SW-UIW-09: the wide layout applies to landscape screens at least 760 x 560. At the 1292 x 698 landscape target and larger, a full game plays without page scrolling, with row height scaling to the viewport height. Allow vertical scrolling only when the viewport is too short to fit the scorecard at a readable text size; do not shrink text below readable to avoid scrolling.
+- Design goal (SW-UIW-09): fill the screen. The page uses the full viewport height and the score rows stretch to use the height left over, so a full game plays without scrolling on landscape and on phone portrait. Scroll only when the viewport is shorter than the minimum row height allows. The wide layout (turn card beside the sheet) applies to landscape screens at least 760 x 560.
 
 ### Phone and narrow screens
 
 - Keep all six games available on the same screen and make each destination identifiable as G1 through G6. Do not hide other cards behind tabs or require switching to a different game to place the next result.
-- Use a compact category-first presentation: show a readable category name, its Odds, and six labeled score targets in that category's row. Each target maps to exactly one card. Keep the Upper and Lower Section headings, the Bonus label, the Yahtzee Bonus row (Single mode), and the per-card Upper Pace, Upper Total, Lower Total, Game Total and Card Total values (SW-SCR-03, 06, 07; SW-UIW-08).
-- Ensure all six targets fit at 320 px wide without horizontal page scrolling. Keep the G1–G6 labels visible while scanning the score rows. A horizontal scorecard scroll is a fallback only if testing proves the six direct targets cannot remain usable at the minimum width.
-- Put the dice, roll progress and primary Roll control before the score destinations. Keep the scorecard reachable with ordinary vertical scrolling; do not shrink the scorecard to fit all thirteen categories in the initial viewport.
-- Target at least 44 x 44 CSS px for mobile score choices and primary controls. If the six choices cannot meet that at the smallest supported width, stop and resolve the layout tradeoff rather than silently reducing the targets.
+- Use the same compact six-column table as the wide layout: one row per category with its name, Odds and six score cells labelled G1 to G6 in the header. Each cell maps to exactly one card. Keep the Upper and Lower Section headings, the Bonus label, the Yahtzee Bonus row, and the per-card Upper Pace, Upper Total, Lower Total, Game Total and Card Total values (SW-SCR-03, 06, 07; SW-UIW-08).
+- Ensure all six columns fit at 320 px wide without horizontal page scrolling.
+- Put a compact turn card (status, dice, Roll with roll count, Undo) above the table, with the total in the top bar. Hide the one-line hint on short portrait screens.
+- Dice, Roll, Undo and New Game stay at least 44 px tall. Score cells fill their table cell (about 24 px tall at 844 px, about 17 px at 664 px). This is a recorded exception to the 44 px target, chosen by the product owner to avoid scrolling; the scratch confirm and Undo mitigate mistaken taps.
 
 ## Content and interaction requirements
 
@@ -92,9 +92,9 @@ In particular, Full Sheet does **not** mean six sequential games, one shared han
 ### Responsive presentation
 
 - At 1292 x 698 landscape, dice and controls appear beside the scorecard, with G1–G6 visible together.
-- At 390 x 844 portrait, dice and controls appear before the score sheet; all six game destinations remain visible in each category row and can be identified without a tab change.
-- At 320 CSS px wide, there is no horizontal page overflow, category names remain readable, and score targets remain at least 44 x 44 CSS px. If impossible with the chosen design, document and resolve the conflict before accepting a reduced target.
-- At 1292 x 698 and larger landscape, a full game plays without page scrolling. Shorter viewports scroll vertically only when needed; no content is clipped and the full scorecard does not get compressed into unreadable type.
+- At 390 x 844 and 390 x 664 portrait, the turn card is above the table and the full six-column table is visible without page scrolling.
+- At 320 CSS px wide, there is no horizontal page overflow and category names remain on one line. Very short screens (for example 320 x 568) may scroll vertically.
+- At 1292 x 698 and larger landscape, and at 360 x 740 and taller portrait, a full game plays without page scrolling and the rows stretch to fill the height.
 - In Single mode, the same responsive UI does not accidentally enable G2–G6.
 
 ### Feature preservation and accessibility
