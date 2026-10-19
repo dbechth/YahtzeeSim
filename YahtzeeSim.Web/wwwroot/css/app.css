@@ -1,9 +1,37 @@
+:root {
+    --paper: #f8f6ee;
+    --shell: #f1efe6;
+    --card: #f8f6ee;
+    --section: #f1f0e8;
+    --line: #dedfd5;
+    --rule: #e8e7de;
+    --ink: #1f2933;
+    --forest: #17352c;
+    --forest-dark: #102a25;
+    --muted: #56645c;
+    --accent: #1f6f5f;
+    --accent-dark: #164d42;
+    --mint: #b8efc7;
+    --mint-deep: #31966a;
+    --gold: #f4c66a;
+    --die: #fbf8ee;
+    --focus: #1d4ed8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 html,
 body {
     margin: 0;
     font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-    background:
-        linear-gradient(180deg, #f4f7ff 0%, #fefbf4 55%, #f2fbf5 100%);
+    background: radial-gradient(circle at 20% 0%, #1a302b 0%, #101c1a 60%) fixed;
     color: #20252f;
 }
 

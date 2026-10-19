@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101c1a">
+  <title>Yahtzee — Redesign concept</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #172320;
+      --muted: #718078;
+      --paper: #f8f6ee;
+      --paper-deep: #eeece2;
+      --forest: #173a32;
+      --forest-dark: #102a25;
+      --mint: #b8efc7;
+      --mint-deep: #31966a;
+      --gold: #f4c66a;
+      --line: #dedfd5;
+      --red: #b95449;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      padding: 30px 24px 44px;
+      background:
+        radial-gradient(ellipse at 18% 0%, rgba(47, 104, 81, .35), transparent 36rem),
+        #101c1a;
+      color: #f8f6ee;
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+
+    .page { width: min(1220px, 100%); margin: auto; }
+    .concept-label {
+      margin: 0 0 15px 2px;
+      color: #a9b8ae;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .app {
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      background: #f1efe6;
+      box-shadow: 0 30px 90px rgba(0,0,0,.3);
+      color: var(--ink);
+    }
+
+    .topbar {
+      display: flex;
+      min-height: 69px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 28px;
+      background: var(--forest-dark);
+      color: #f8f6ee;
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-mark {
+      display: grid;
+      width: 33px;
+      height: 33px;
+      place-items: center;
+      border: 1px solid rgba(184,239,199,.5);
+      border-radius: 10px;
+      color: var(--mint);
+      font-size: 17px;
+      transform: rotate(-5deg);
+    }
+    .brand-name { font-family: var(--serif); font-size: 20px; font-weight: 700; letter-spacing: -.03em; }
+    .brand-name span { color: var(--mint); }
+    .top-meta { display: flex; align-items: center; gap: 17px; color: #bfcbc3; font-size: 12px; }
+    .online-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #79d694; }
+    .icon-button {
+      display: grid;
+      width: 35px;
+      height: 35px;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+    }
+
+    .content { padding: 28px; }
+    .welcome {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 21px;
+    }
+    .eyebrow {
+      margin: 0 0 7px;
+      color: #648071;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      color: #18382f;
+      font-family: var(--serif);
+      font-size: clamp(25px, 3vw, 34px);
+      letter-spacing: -.045em;
+      line-height: 1.08;
+    }
+    .subtitle { margin: 7px 0 0; color: #778179; font-size: 13px; }
+
+    .board {
+      display: grid;
+      grid-template-columns: minmax(260px, .78fr) minmax(0, 1.72fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .turn-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      padding: 21px;
+      border-radius: 16px;
+      background:
+        radial-gradient(ellipse at 90% 3%, rgba(72,129,97,.28), transparent 54%),
+        linear-gradient(145deg, #20493d, #15342d 78%);
+      color: white;
+    }
+    .turn-overline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .turn-overline span:first-child { color: #c4d5ca; font-size: 11px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+    .round-pill {
+      padding: 6px 9px;
+      border: 1px solid rgba(255,255,255,.19);
+      border-radius: 999px;
+      color: #e1ebe4;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .turn-title { margin: 20px 0 5px; font-family: var(--serif); font-size: 23px; letter-spacing: -.035em; }
+    .turn-hint { margin: 0; color: #c1d0c7; font-size: 12px; line-height: 1.5; }
+    .roll-progress { display: flex; gap: 6px; margin: 18px 0 15px; }
+    .roll-progress span { height: 4px; flex: 1; border-radius: 8px; background: rgba(255,255,255,.19); }
+    .roll-progress span.done { background: var(--mint); }
+    .dice-tray {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 7px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 14px;
+      background: rgba(6,22,18,.23);
+    }
+    .die {
+      display: grid;
+      aspect-ratio: 1;
+      min-width: 0;
+      place-items: center;
+      border: 2px solid transparent;
+      border-radius: 11px;
+      background: #fffdf6;
+      box-shadow: 0 3px 0 rgba(0,0,0,.14);
+      color: #203c33;
+      font-size: clamp(22px, 3vw, 30px);
+      line-height: 1;
+      cursor: pointer;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .die:hover { transform: translateY(-2px); }
+    .die.held { border-color: var(--gold); background: #fff1c9; transform: translateY(-3px); }
+    .held-key { display: flex; align-items: center; gap: 6px; margin-top: 9px; color: #d2ded6; font-size: 10px; }
+    .held-key b { width: 9px; height: 9px; border: 1px solid var(--gold); border-radius: 3px; background: #fff1c9; }
+    .turn-spacer { flex: 1; min-height: 18px; }
+    .roll-button {
+      display: flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 11px;
+      background: var(--mint);
+      color: #16372e;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .15s ease, background .15s ease;
+    }
+    .roll-button[hidden] { display: none; }
+    .roll-button:hover { background: #c8f4d2; transform: translateY(-1px); }
+    .roll-button:disabled { opacity: .55; cursor: default; transform: none; }
+    .keycap { padding: 4px 6px; border: 1px solid rgba(22,55,46,.23); border-radius: 5px; font-size: 10px; }
+    .turn-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 13px; color: #c1d0c7; font-size: 10px; }
+    .undo-button { padding: 0; border: 0; background: none; color: #e6d4ac; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+    .sheet-card {
+      overflow: hidden;
+      border: 1px solid #e1e1d8;
+      border-radius: 16px;
+      background: var(--paper);
+      box-shadow: 0 4px 16px rgba(33,47,38,.035);
+    }
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 17px 13px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sheet-heading { margin: 0; color: #244438; font-family: var(--serif); font-size: 17px; letter-spacing: -.02em; }
+    .sheet-total { text-align: right; }
+    .sheet-total small { display: block; color: #818980; font-size: 9px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    .sheet-total strong { color: #214c3c; font-family: var(--serif); font-size: 24px; }
+    .desktop-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .desktop-table th {
+      height: 31px;
+      background: #eeeee5;
+      color: #758078;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .07em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .desktop-table th:first-child { width: 27%; padding-left: 15px; text-align: left; }
+    .desktop-table th:nth-child(2) { width: 12%; }
+    .desktop-table td {
+      height: 30px;
+      border-top: 1px solid #e8e7de;
+      color: #49564f;
+      font-size: 11px;
+      text-align: center;
+    }
+    .desktop-table td:first-child { padding-left: 15px; color: #263b32; font-weight: 700; text-align: left; }
+    .desktop-table td:nth-child(2) { color: #89928b; font-size: 10px; }
+    .desktop-table .section-row td {
+      height: 24px;
+      border-top: 1px solid #d9dbd1;
+      background: #f1f0e8;
+      color: #789083;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .desktop-table td.game-score { padding: 3px; }
+    .score-cell {
+      width: 100%;
+      min-height: 28px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: #77847b;
+      font-size: 11px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .score-cell.valid { border-color: #c8e3cc; background: #f0f8ee; color: #347450; }
+    .score-cell:hover:not(:disabled) { border-color: #a9dcb5; background: #eff8ed; }
+    .score-cell.selected { border-color: #a3d5af; background: #dff1e1; color: #245f42; font-weight: 850; }
+    .score-cell.scratch-pending { border-color: #e0a35f; background: #fff0d5; color: #805222; }
+    .score-cell:disabled:not(.selected) { cursor: not-allowed; opacity: .36; }
+    .desktop-table .total-row td { background: #eeeee5; color: #365345; font-weight: 750; }
+    .desktop-table .total-row td:first-child { color: #365345; }
+    .pace-chip { display: inline-flex; align-items: center; gap: 5px; color: #28704e; font-size: 10px; font-weight: 800; }
+    .pace-chip::before { content: "↗"; display: grid; width: 17px; height: 17px; place-items: center; border-radius: 50%; background: #d9efde; }
+    .mobile-sheet { display: none; }
+    .mobile-game-labels,
+    .mobile-score-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 5px;
+    }
+    .mobile-game-labels { margin-bottom: 5px; }
+    .mobile-game-labels span { color: #78857c; font-size: 9px; font-weight: 800; text-align: center; }
+    .mobile-section { margin: 13px 0 3px; color: #849087; font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .mobile-category-row { padding: 8px 0 10px; border-top: 1px solid #e5e4da; }
+    .mobile-category-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 7px; }
+    .mobile-category-heading strong { color: #30453a; font-size: 12px; }
+    .mobile-category-heading small { color: #879189; font-size: 9px; }
+    .mobile-score-grid .score-cell {
+      min-height: 38px;
+      border: 1px solid #dfe2d8;
+      border-radius: 7px;
+      background: #fffef9;
+      font-size: 12px;
+    }
+    .mobile-score-grid .score-cell.valid { border-color: #bcdcc1; background: #eff8ed; }
+    .mobile-score-grid .score-cell.selected { border-color: #93cea2; background: #d9efde; color: #245f42; }
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 3;
+      padding: 11px 15px;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 10px;
+      background: #173a32;
+      box-shadow: 0 9px 25px rgba(0,0,0,.24);
+      color: white;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: .2s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 760px) {
+      body { padding: 14px 10px 26px; }
+      .concept-label { margin: 0 0 10px 3px; font-size: 9px; }
+      .app { border-radius: 16px; }
+      .topbar { min-height: 57px; padding: 0 15px; }
+      .brand-mark { width: 30px; height: 30px; }
+      .brand-name { font-size: 18px; }
+      .top-meta { gap: 10px; font-size: 10px; }
+      .top-meta .online-label { display: none; }
+      .content { padding: 18px 13px 15px; }
+      .welcome { align-items: start; flex-direction: column; gap: 13px; margin-bottom: 14px; }
+      .welcome-copy { width: 100%; }
+      h1 { font-size: 27px; }
+      .subtitle { font-size: 12px; }
+      .board { grid-template-columns: 1fr; gap: 12px; }
+      .turn-card { min-height: initial; padding: 16px; }
+      .turn-title { margin-top: 14px; font-size: 20px; }
+      .turn-hint { max-width: 32rem; font-size: 11px; }
+      .roll-progress { margin: 13px 0 11px; }
+      .dice-tray { gap: 8px; padding: 10px; }
+      .die { border-radius: 10px; font-size: clamp(24px, 8vw, 34px); }
+      .turn-spacer { min-height: 13px; }
+      .roll-button { min-height: 47px; }
+      .sheet-head { padding: 13px 13px 10px; }
+      .sheet-heading { font-size: 16px; }
+      .desktop-table { display: none; }
+      .mobile-sheet { display: block; padding: 10px 12px 12px; }
+      .mobile-score-grid { gap: 4px; }
+      .mobile-score-grid .score-cell { min-height: 40px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="concept-label">YahtzeeSim redesign concept</p>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">⚄</div>
+          <div class="brand-name">Yahtzee<span>Sim</span></div>
+        </div>
+        <div class="top-meta">
+          <span class="online-label"><i class="online-dot"></i>Saved on this device</span>
+          <button class="icon-button" type="button" aria-label="Settings" title="Settings">⚙</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="welcome" aria-label="Game overview">
+          <div class="welcome-copy">
+            <h1>Full Sheet</h1>
+            <p class="subtitle">Roll up to three times, then score one open box.</p>
+          </div>
+        </section>
+
+        <section class="board" aria-label="Game table">
+          <section class="turn-card" aria-label="Current turn">
+            <div class="turn-overline">
+              <span id="active-game-label">Turn 08</span>
+              <span class="round-pill" id="round-pill">ROLL 3 / 3</span>
+            </div>
+            <h2 class="turn-title" id="turn-title">Full House</h2>
+            <p class="turn-hint" id="turn-hint">25 points</p>
+            <div class="roll-progress" aria-label="Roll 3 of 3">
+              <span class="done"></span><span class="done"></span><span class="done"></span>
+            </div>
+            <div class="dice-tray" aria-label="Dice. Tap a die to hold it.">
+              <button class="die" type="button" aria-pressed="false" aria-label="Die showing three">⚂</button>
+              <button class="die" type="button" aria-pressed="false" aria-label="Die showing three">⚂</button>
+              <button class="die" type="button" aria-pressed="false" aria-label="Die showing three">⚂</button>
+              <button class="die" type="button" aria-pressed="false" aria-label="Die showing five">⚄</button>
+              <button class="die" type="button" aria-pressed="false" aria-label="Die showing five">⚄</button>
+            </div>
+            <div class="held-key" id="dice-hint"><b></b> Tap dice to hold</div>
+            <div class="turn-spacer"></div>
+            <button class="roll-button" id="roll-button" type="button" disabled>
+              <span id="roll-action">Choose a score</span><span class="keycap" id="roll-keycap">3 / 3</span>
+            </button>
+            <div class="turn-footer">
+              <button class="undo-button" id="undo-button" type="button">↶ Undo last score</button>
+            </div>
+          </section>
+
+          <section class="sheet-card" aria-label="Scorecard">
+            <div class="sheet-head">
+              <div>
+                <h2 class="sheet-heading">Scorecards</h2>
+              </div>
+              <div class="sheet-total"><small>Cards complete</small><strong id="series-total">0 / 6</strong></div>
+            </div>
+            <table class="desktop-table" aria-label="Six parallel Yahtzee games. Choose one open category cell to score the current turn.">
+              <thead><tr><th>Category</th><th>This hand</th><th>G1</th><th>G2</th><th>G3</th><th>G4</th><th>G5</th><th>G6</th></tr></thead>
+              <tbody id="desktop-score-body"></tbody>
+            </table>
+            <div class="mobile-sheet" id="mobile-score-body" aria-label="All six parallel games. Choose one open category cell to score this turn."></div>
+          </section>
+        </section>
+
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const categories = [
+        { section: "Upper section", name: "Aces", face: 1 },
+        { name: "Twos", face: 2 },
+        { name: "Threes", face: 3 },
+        { name: "Fours", face: 4 },
+        { name: "Fives", face: 5 },
+        { name: "Sixes", face: 6 },
+        { section: "Lower section", name: "Three of a Kind" },
+        { name: "Four of a Kind" },
+        { name: "Full House" },
+        { name: "Small Straight" },
+        { name: "Large Straight" },
+        { name: "Yahtzee" },
+        { name: "Chance" }
+      ];
+      const scoreCategories = categories.filter(category => !category.section);
+      const cards = Array.from({ length: 6 }, () => Object.fromEntries(scoreCategories.map(category => [category.name, null])));
+      cards[0].Aces = { score: 3 };
+      cards[0]["Three of a Kind"] = { score: 18 };
+      cards[0]["Full House"] = { score: 25 };
+      cards[0].Chance = { score: 22 };
+      cards[1].Twos = { score: 6 };
+      cards[1].Fours = { score: 12 };
+      cards[1]["Small Straight"] = { score: 30 };
+      cards[2].Fives = { score: 15 };
+      cards[2]["Three of a Kind"] = { score: 21 };
+      cards[4].Sixes = { score: 18 };
+      let diceValues = [3, 3, 3, 5, 5];
+      let heldDice = [false, false, false, false, false];
+      let rollCount = 3;
+      let turnNumber = 8;
+      let pendingScratch = null;
+      const toast = document.querySelector("#toast");
+      const toastTimer = { id: 0 };
+      const faces = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+      const faceNames = ["", "one", "two", "three", "four", "five", "six"];
+
+      function announce(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimer.id);
+        toastTimer.id = setTimeout(() => toast.classList.remove("show"), 1800);
+      }
+
+      function evaluate(category, dice = diceValues) {
+        if (!dice.every(value => value > 0)) return null;
+        const counts = Array(7).fill(0);
+        dice.forEach(value => counts[value]++);
+        const sum = dice.reduce((total, value) => total + value, 0);
+        if (category.face) return counts[category.face] ? counts[category.face] * category.face : null;
+        if (category.name === "Three of a Kind") return Math.max(...counts) >= 3 ? sum : null;
+        if (category.name === "Four of a Kind") return Math.max(...counts) >= 4 ? sum : null;
+        if (category.name === "Full House") return counts.includes(3) && counts.includes(2) ? 25 : null;
+        if (category.name === "Small Straight") {
+          return ["1234", "2345", "3456"].some(run => [...run].every(face => counts[Number(face)] > 0)) ? 30 : null;
+        }
+        if (category.name === "Large Straight") {
+          return ["12345", "23456"].some(run => [...run].every(face => counts[Number(face)] > 0)) ? 40 : null;
+        }
+        if (category.name === "Yahtzee") return Math.max(...counts) === 5 ? 50 : null;
+        return sum;
+      }
+
+      function isComplete(gameIndex) {
+        return scoreCategories.every(category => cards[gameIndex][category.name] !== null);
+      }
+
+      function renderCell(category, gameIndex) {
+        const cell = cards[gameIndex][category.name];
+        const result = evaluate(category);
+        const key = `${gameIndex}:${category.name}`;
+        const isPending = pendingScratch === key;
+        const label = cell
+          ? `${category.name}, Game ${gameIndex + 1}, ${cell.scratch ? "scratch" : `${cell.score} points, already scored`}`
+          : result !== null
+            ? `${category.name}, Game ${gameIndex + 1}, score ${result}`
+            : `${category.name}, Game ${gameIndex + 1}, scratch for zero`;
+        const contents = cell ? (cell.scratch ? "X" : cell.score) : result === null ? "—" : result;
+        const stateClass = cell ? "filled" : result === null ? "scratch" : "valid";
+        return `<button class="score-cell ${stateClass}${isPending ? " scratch-pending" : ""}" type="button"
+          data-category="${category.name}" data-game="${gameIndex}" aria-label="${label}${isPending ? ", tap again to confirm scratch" : ""}"
+          ${cell || rollCount === 0 || isComplete(gameIndex) ? "disabled" : ""}>${contents}</button>`;
+      }
+
+      function renderScorecard() {
+        let desktop = "";
+        let mobile = `<div class="mobile-game-labels" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(game => `<span>G${game}</span>`).join("")}</div>`;
+        categories.forEach((category) => {
+          if (category.section) {
+            desktop += `<tr class="section-row"><td colspan="8">${category.section}</td></tr>`;
+            mobile += `<p class="mobile-section">${category.section}</p>`;
+          }
+          const result = evaluate(category);
+          const resultLabel = rollCount === 0 ? "—" : result === null ? "Scratch" : `${result} pts`;
+          desktop += `<tr><td>${category.name}</td><td>${resultLabel}</td>${[0, 1, 2, 3, 4, 5].map(game => `<td class="game-score">${renderCell(category, game)}</td>`).join("")}</tr>`;
+          mobile += `<section class="mobile-category-row"><div class="mobile-category-heading"><strong>${category.name}</strong><small>${resultLabel}</small></div><div class="mobile-score-grid">${[0, 1, 2, 3, 4, 5].map(game => renderCell(category, game)).join("")}</div></section>`;
+        });
+        const totals = cards.map(card => Object.values(card).filter(Boolean).reduce((sum, cell) => sum + (cell.scratch ? 0 : cell.score), 0));
+        const completeCount = cards.filter((_, index) => isComplete(index)).length;
+        desktop += `<tr class="total-row"><td>Filled points</td><td></td>${totals.map(total => `<td>${total}</td>`).join("")}</tr>`;
+        document.querySelector("#desktop-score-body").innerHTML = desktop;
+        document.querySelector("#mobile-score-body").innerHTML = mobile;
+        document.querySelector("#series-total").textContent = `${completeCount} / 6`;
+        document.querySelectorAll(".score-cell").forEach((button) => button.addEventListener("click", () => {
+          const gameIndex = Number(button.dataset.game);
+          const category = scoreCategories.find(item => item.name === button.dataset.category);
+          const score = evaluate(category);
+          if (score === null) {
+            const key = `${gameIndex}:${category.name}`;
+            if (pendingScratch !== key) {
+              pendingScratch = key;
+              announce(`Tap Game ${gameIndex + 1} ${category.name} again to confirm the scratch`);
+              renderScorecard();
+              return;
+            }
+            cards[gameIndex][category.name] = { score: 0, scratch: true };
+          } else {
+            cards[gameIndex][category.name] = { score, scratch: false };
+          }
+          pendingScratch = null;
+          const recorded = cards[gameIndex][category.name];
+          announce(`${category.name} ${recorded.scratch ? "scratched" : `scored ${recorded.score}`} on Game ${gameIndex + 1}. Next turn: choose any open cell.`);
+          startNextTurn();
+        }));
+      }
+
+      function updateTurnDisplay() {
+        document.querySelector("#active-game-label").textContent = `Turn ${String(turnNumber).padStart(2, "0")}`;
+        document.querySelector("#round-pill").textContent = rollCount === 0 ? "READY" : `ROLL ${rollCount} / 3`;
+        document.querySelector("#turn-title").textContent = rollCount === 0
+          ? "Ready to roll"
+          : rollCount === 3 && evaluate(scoreCategories.find(category => category.name === "Full House")) !== null
+            ? "Full House"
+            : rollCount === 3 ? "Choose a score" : `Roll ${rollCount} of 3`;
+        document.querySelector("#turn-hint").textContent = rollCount === 0
+          ? "Roll to begin."
+          : rollCount === 3
+            ? evaluate(scoreCategories.find(category => category.name === "Full House")) === 25
+              ? "25 points. Tap an open box."
+              : "Tap an open box to score."
+            : "Hold dice or roll again.";
+        document.querySelector("#dice-hint").style.visibility = rollCount === 3 ? "hidden" : "visible";
+        document.querySelectorAll(".roll-progress span").forEach((bar, index) => bar.classList.toggle("done", index < rollCount));
+        document.querySelector(".roll-progress").setAttribute("aria-label", rollCount === 0 ? "New turn, no rolls yet" : `Roll ${rollCount} of 3`);
+        document.querySelector("#roll-action").textContent = rollCount === 0
+          ? "Roll"
+          : rollCount === 3 ? "Choose a score" : "Roll again";
+        document.querySelector("#roll-keycap").textContent = rollCount === 0 ? "NEW TURN" : `${rollCount} / 3`;
+        document.querySelector("#roll-button").disabled = rollCount >= 3;
+        document.querySelector("#roll-button").hidden = rollCount >= 3;
+      }
+
+      function renderDice() {
+        document.querySelectorAll(".die").forEach((die, index) => {
+          const value = diceValues[index];
+          die.textContent = faces[value];
+          die.disabled = rollCount === 0 || rollCount >= 3 || value === 0;
+          die.classList.toggle("held", heldDice[index]);
+          die.setAttribute("aria-pressed", String(heldDice[index]));
+          die.setAttribute("aria-label", value ? `Die showing ${faceNames[value]}${heldDice[index] ? ", held" : ""}` : `Die ${index + 1}, not rolled`);
+        });
+      }
+
+      function startNextTurn() {
+        turnNumber++;
+        rollCount = 0;
+        diceValues = [0, 0, 0, 0, 0];
+        heldDice = [false, false, false, false, false];
+        pendingScratch = null;
+        renderDice();
+        renderScorecard();
+        updateTurnDisplay();
+      }
+
+      document.querySelectorAll(".die").forEach((die, index) => die.addEventListener("click", () => {
+        if (rollCount === 0 || rollCount >= 3 || diceValues[index] === 0) return;
+        const held = die.classList.toggle("held");
+        heldDice[index] = held;
+        die.setAttribute("aria-pressed", String(held));
+        die.setAttribute("aria-label", `Die showing ${faceNames[diceValues[index]]}${held ? ", held" : ""}`);
+        announce(held ? "Die held for the next roll" : "Die released");
+      }));
+
+      document.querySelector("#roll-button").addEventListener("click", () => {
+        if (rollCount >= 3) return;
+        diceValues = diceValues.map((value, index) => {
+          const die = document.querySelectorAll(".die")[index];
+          return rollCount === 0 || !heldDice[index] ? 1 + Math.floor(Math.random() * 6) : value;
+        });
+        rollCount++;
+        renderDice();
+        updateTurnDisplay();
+        renderScorecard();
+        announce(rollCount === 3 ? "Final roll. Choose an open box on any game." : `Roll ${rollCount} complete. Hold dice or continue.`);
+      });
+
+      document.querySelector("#undo-button").addEventListener("click", () => announce("Undo last score"));
+      renderDice();
+      renderScorecard();
+      updateTurnDisplay();
+      document.querySelector(".icon-button").addEventListener("click", () => announce("Settings preview"));
+    })();
+  </script>
+</body>
+</html>

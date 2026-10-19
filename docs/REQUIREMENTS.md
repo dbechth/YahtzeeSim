@@ -83,7 +83,7 @@ Source links point to the file that implements the behaviour.
 | SW-SCR-03 | Upper subtotal, lower subtotal, upper bonus and game total shall be computed only when the card is complete; before that they shall be unavailable and displayed as "--". | [GameCardState.cs](../YahtzeeSim.Engine/GameCardState.cs) | UR-10 | ✅ (TODO.md: "calculated automatically at game end") |
 | SW-SCR-04 | The upper bonus shall be 35 when the upper subtotal (excluding bonus) is ≥ 63, otherwise 0. | `GameCardState` | UR-10 | ✅ |
 | SW-SCR-05 | Game total shall equal upper subtotal + lower subtotal + bonus. | `GameCardState.GameTotal` | UR-10 | ✅ |
-| SW-SCR-06 | A "Card Total" shall equal the sum of game totals and shall be shown only when all cards in play are complete (Single: card 1; Full Sheet: all six), in the G1 column of the Card Total row. | Web `GetCardTotalDisplay` | UR-05 | ✅ |
+| SW-SCR-06 | A "Card Total" shall equal the sum of game totals and shall be shown only when all cards in play are complete (Single: card 1; Full Sheet: all six), in the G1 column of the Card Total row (full width in the narrow layout, SW-UIW-10). | Web `GetCardTotalDisplay` | UR-05 | ✅ |
 | SW-SCR-07 | An "Upper Pace" row shall show, per card, Σ((count − 3) × face) over filled upper cells (scratch counts as −3 × face), with "+" for positive values, and "--" for disabled cards. | `ScoreRules.GetUpperPaceDelta` | UR-06 | ✅ |
 | SW-SCR-08 | The Upper Pace figure shall be tracked for every game in both Single and Full Sheet modes. A blank upper cell counts as exactly three of its face, so the figure equals the projected upper subtotal minus 63 (≥ 0 means the 35-point bonus is on track). No further display is required. | `ScoreRules.GetUpperPaceDelta` | UR-06 | ✅ Covered by SW-SCR-07 (decided: keep the +/- number and colour tone as is) |
 
@@ -94,8 +94,8 @@ Source links point to the file that implements the behaviour.
 | SW-MOD-01 | The app shall open in a not-started state: dice, Roll, Undo and score cells are disabled and the status line prompts "Tap New Game". | Web `OnInitialized` | UR-01 | ✅ |
 | SW-MOD-02 | "New Game" shall ask for a mode (Single or Full Sheet) with a Cancel option, reset the engine, and then prompt for a pen colour. | Web `SelectGameMode` | UR-01, UR-05 | ✅ |
 | SW-MOD-03 | New Game shall be available at any time and shall ask "Abandon current game?" before discarding a game that has been started (it does not ask when nothing has been rolled or scored yet). | same | UR-01 | ✅ |
-| SW-MOD-04 | In Single mode only card G1 shall be enabled; G2–G6 columns remain visible but cannot be scored. | `IsCardEnabled` | UR-01, UR-05 | ✅ Disabled columns stay visible, greyed out (accepted by decision) |
-| SW-MOD-05 | In Full Sheet mode all six cards shall be enabled; each turn's dice may be scored to any unfilled cell on any card, in any order. | `IsCardEnabled`, `TryApplyScore` | UR-05 | ✅ |
+| SW-MOD-04 | In Single mode only card G1 shall be enabled; G2–G6 remain visible (at every screen width) but greyed out and cannot be scored. | `IsCardEnabled` | UR-01, UR-05 | ✅ Disabled columns stay visible, greyed out (accepted by decision) |
+| SW-MOD-05 | In Full Sheet mode all six cards shall be enabled and played in parallel over one sequence of turns. Each turn ends with exactly one score or scratch, recorded in one unfilled cell on one card; the next turn may target any unfilled cell on any incomplete card, in any order. The same category may be scored on different cards in different turns. A completed card is unavailable while other incomplete cards stay playable. | `IsCardEnabled`, `TryApplyScore` | UR-05 | ✅ |
 | SW-MOD-06 | When a Full Sheet completes, the app shall show a summary with per-card Upper, Lower, Bonus, Total and the series total. | Web summary panel | UR-05 | ✅ (no equivalent panel for Single) |
 
 ### 3.5 Probability guidance (PRB)
@@ -126,7 +126,7 @@ Source links point to the file that implements the behaviour.
 | SW-PEN-03 | A mandatory pen-colour picker shall be shown right after a new game starts. | `PromptForPenColorAsync` / `OpenColorPicker` | UR-08 | ✅ |
 | SW-PEN-04 | After five of a kind is scored in any box (not as a scratch), the picker shall be shown again with a "Keep Current" option. | `OnScoreClickedAsync` / `ApplyScoreAsync` | UR-08 | ✅ Confirmed by decision: the picker fires on scoring; the celebration fires on rolling (SW-CEL-01) |
 | SW-PEN-05 | The colour shall not be changeable at any other time (no other entry point). | UI | UR-08 | ✅ |
-| SW-PEN-06 | A filled cell shall render with its stored pen colour as background and a black/white text colour chosen by luminance. | `GetContrastingTextColor` | UR-08 | ✅ |
+| SW-PEN-06 | A filled cell shall render with its stored pen colour as background and a black or white text colour, whichever gives the higher contrast against it. Filled cells keep full strength (not faded) and always show their value or X. | `GetContrastingTextColor` | UR-08 | ✅ |
 | SW-CEL-01 | Rolling five of a kind shall show a full-screen splash/animation that dismisses itself after about 2 seconds or on tap. | Web `ShowYahtzeeSplashAsync` | UR-09 | ✅ |
 | SW-CEL-02 | Recording a scratch shall inform the user that the category was recorded as X (stored as 0). | same | UR-03 | ✅ Web banner |
 
@@ -134,15 +134,19 @@ Source links point to the file that implements the behaviour.
 
 | ID | Requirement | Source | UR | Status |
 |---|---|---|---|---|
-| SW-UIW-01 | The single page `/` shall present the app using HTML/CSS (table-based score grid), reusing the engine unchanged. | Home.razor | UR-12 | ✅ |
+| SW-UIW-01 | The single page `/` shall present the app using HTML/CSS with a semantic score table (explicit table roles so the narrow layout keeps its semantics), reusing the engine unchanged. No scoring rules shall exist in the UI. | Home.razor | UR-12 | ✅ |
 | SW-UIW-02 | Roll shall show a "rolling" visual on pointer-down for non-held dice and roll on click; Roll/Undo use an 8fr/2fr grid. | `RollButtonPressed/ClickedAsync`, Home.razor.css | UR-11 | ✅ |
-| SW-UIW-03 | Score buttons shall be enabled for any unfilled cell on an enabled card once rolled; picking a cell that is not valid shall ask to confirm a scratch (SW-TRN-07, SW-TRN-08). | `GetPickStatus`, `ApplyScoreAsync` | UR-03 | ✅ |
+| SW-UIW-03 | Score buttons shall be enabled for any unfilled cell on an enabled card once rolled; picking a valid cell scores and ends the turn immediately; picking a cell that is not valid shall ask to confirm a scratch (SW-TRN-07, SW-TRN-08). Empty cells shall stay blank: no points preview is shown (SW-SCR-01). | `GetPickStatus`, `ApplyScoreAsync` | UR-03 | ✅ |
 | SW-UIW-04 | Feedback messages (scratch, Yahtzee, invalid) shall appear in a notice banner that is cleared on undo and on a new game. | `_noticeText` | UR-03 | ✅ |
-| SW-UIW-05 | Mode selection and pen colour shall use in-page modal overlays. | Home.razor | UR-01 | ✅ |
+| SW-UIW-05 | Mode selection, pen colour, resume and confirmation prompts shall use in-page modal overlays that behave as accessible dialogs (SW-UIW-12). | Home.razor | UR-01 | ✅ |
 | SW-UIW-06 | Dice buttons shall be disabled unless holding is allowed. | Home.razor | UR-02 | ✅ |
-| SW-UIW-07 | The layout shall adapt with CSS (clamp-based sizing; see SW-UIW-09 for the landscape layout). | Home.razor.css | UR-11 | ✅ |
+| SW-UIW-07 | The layout shall adapt with CSS: the wide layout (SW-UIW-09) and the narrow layout (SW-UIW-10) both show all six cards without tabs or a card selector. | Home.razor.css | UR-11 | ✅ |
 | SW-UIW-08 | The scorecard shall use real-card layout and wording: "Upper Section" and "Lower Section" headings, a "Bonus 35 if 63+" label, a "Yahtzee Bonus" row of check marks, and the official box order and names. | Home.razor | UR-01 | ✅ |
-| SW-UIW-09 | On landscape screens at least 760 px wide (smallest target 1292×698), the dice/controls shall sit in a left column beside the score card, and the card's row height shall scale with viewport height so a full game can be played without scrolling. | Home.razor, Home.razor.css | UR-11 | ✅ |
+| SW-UIW-09 | On landscape screens at least 760 px wide and 560 px tall (smallest target 1292×698; shorter landscape screens such as a phone turned sideways use the narrow layout, SW-UIW-10), the dice/controls shall sit in a left column beside the score card, and the card's row height shall scale with viewport height so a full game can be played without page scrolling. Vertical scrolling is allowed only when the viewport is too short to fit the card at a readable text size. | Home.razor, Home.razor.css | UR-11 | ✅ |
+| SW-UIW-10 | **Narrow layout** (portrait or under 760 px). The dice, roll progress and Roll/Undo controls shall come before the score card. The card shall be category-first: each category shows its name and Odds, then six score targets labelled G1–G6 in one row, each mapped to exactly one card; a sticky G1–G6 header keeps the labels visible while scrolling. Section headings, Upper Pace, Bonus, Yahtzee Bonus and the totals rows remain, using the same six columns. At 320 px wide there shall be no horizontal page scrolling and every score target and primary control shall be at least 44 × 44 CSS px. | Home.razor.css | UR-11 | ✅ |
+| SW-UIW-11 | Score cells shall be distinguishable without relying on colour alone: filled (value or X, pen colour, solid heavy border), open and valid (solid border), open and scratch-only (dashed border), unavailable (flat, faded, no border). Cells made unavailable by the Single mode Joker rule are unavailable. | Home.razor, Home.razor.css | UR-11 | ✅ |
+| SW-UIW-12 | **Accessibility.** Every score button shall have an accessible name giving category, game and state (filled with value or X, open and scores, open and scratch only, unavailable). Each die shall have an accessible name giving its face, and `aria-pressed` for held; after the third roll dice are final and not announced as held. All actions shall be keyboard operable with a visible focus indicator. Roll progress, scores, scratches, undo and game completion shall be announced through a polite live region without re-reading the scorecard. Modal overlays shall have `role="dialog"`, a name, and move focus into the dialog; the page behind is inert while one is open. Escape cancels the mode and confirm prompts and, in the Yahtzee pen picker, keeps the current colour; it never dismisses the mandatory pen picker (SW-PEN-03) or the resume prompt. Motion (dice, splash) shall respect `prefers-reduced-motion`. | Home.razor, Home.razor.css | UR-11 | ✅ |
+| SW-UIW-13 | Interface copy shall be short and plain. The status line shall show the mode, turn progress ("Roll 2 of 3") and a single next step ("Choose a score"), keeping the Joker explanation in Single mode and the "Tap New Game" prompt before a game starts (SW-MOD-01). | Home.razor | UR-11 | ✅ |
 
 ### 3.9 Platform, packaging and reliability (PLT)
 
@@ -183,7 +187,7 @@ Source links point to the file that implements the behaviour.
 | UR-08 Pen colours | SCR-02, PEN-01 … PEN-06 |
 | UR-09 Yahtzee celebration | CEL-01 |
 | UR-10 Automatic totals | SCR-03, SCR-04, SCR-05 |
-| UR-11 Touch / responsive | UIW-02, UIW-07, NFR-02 |
+| UR-11 Touch / responsive | UIW-02, UIW-07, UIW-09, UIW-10, UIW-11, UIW-12, UIW-13, NFR-02 |
 | UR-12 Cross-platform | UIW-01, PLT-01, PLT-02, PLT-04 |
 | UR-13 Reliable start / recovery | PLT-05, PLT-06, OPS-04 |
 | UR-14 Maintainable / deployable | PLT-03, OPS-01, OPS-02, OPS-03, OPS-05, NFR-01 |
@@ -211,7 +215,8 @@ Decided with the owner:
 | Bonus pace (SW-SCR-07/08) | Existing per-game Upper Pace row (+/- number and colour tone) is sufficient, in both modes. |
 | Probabilities (SW-PRB-04/05/06) | Seeded Monte-Carlo, recalculated on hold toggle; still shown for filled categories. |
 | New Game (SW-MOD-03) | Confirms before abandoning a started game; no prompt when nothing has been played. |
-| Single mode layout (SW-MOD-04) | Unused columns stay visible, greyed out. |
+| Single mode layout (SW-MOD-04) | Unused columns stay visible, greyed out, at every width. |
+| Redesign (SW-UIW-09 to 13) | Landscape keeps the no-scroll full-game layout, scrolling only when the viewport is too short for readable text. No points preview in open cells. Narrow screens use a category-first layout with six labelled targets per category, no tabs. |
 | Persistence (SW-PLT-07) | Autosave with a resume prompt. |
 | Card look (SW-UIW-08) | Real-card headings, bonus label, Yahtzee Bonus check marks, official box order and names. |
 | Performance (SW-NFR-02) | Under 100 ms on a mid-range phone. |
