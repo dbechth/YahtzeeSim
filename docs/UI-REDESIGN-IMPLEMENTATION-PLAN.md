@@ -44,7 +44,7 @@ In particular, Full Sheet does **not** mean six sequential games, one shared han
 - Keep all six games available on the same screen and make each destination identifiable as G1 through G6. Do not hide other cards behind tabs or require switching to a different game to place the next result.
 - Use the same compact six-column table as the wide layout: one row per category with its name, Odds and six score cells labelled G1 to G6 in the header. Each cell maps to exactly one card. Keep the Upper and Lower Section headings, the Bonus label, the Yahtzee Bonus row, and the per-card Upper Pace, Upper Total, Lower Total, Game Total and Card Total values (SW-SCR-03, 06, 07; SW-UIW-08).
 - Ensure all six columns fit at 320 px wide without horizontal page scrolling.
-- Put a compact turn card (status, dice, Roll with roll count, Undo) above or below the table, with the total in the top bar. Hide the one-line hint on short portrait screens.
+- Put a compact turn card (status, dice, Roll with roll count, Undo) above or below the table, with the total in the Card Total row of the table. Hide the one-line hint on short portrait screens.
 - Dice, Roll, Undo and New Game stay at least 44 px tall. Score cells fill their table cell (about 24 px tall at 844 px, about 17 px at 664 px). This is a recorded exception to the 44 px target, chosen by the product owner to avoid scrolling; the scratch confirm and Undo mitigate mistaken taps.
 
 ## Content and interaction requirements

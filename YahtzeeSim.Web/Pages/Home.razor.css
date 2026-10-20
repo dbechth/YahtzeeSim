@@ -92,26 +92,6 @@ button:disabled {
     color: var(--mint);
 }
 
-.top-total {
-    display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
-    color: #ffffff;
-}
-
-.top-total span {
-    font-size: 0.62rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #b9d4c4;
-}
-
-.top-total strong {
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 1.15rem;
-}
-
 .dock-btn {
     display: none;
     align-items: center;
@@ -472,26 +452,6 @@ button:disabled {
     font-size: 0.8rem;
     font-weight: 400;
     color: var(--muted);
-}
-
-.series-total-chip {
-    display: flex;
-    align-items: baseline;
-    gap: 0.45rem;
-}
-
-.series-total-chip span {
-    font-size: 0.65rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
-.series-total-chip strong {
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 1.25rem;
-    color: var(--forest);
 }
 
 .score-scroll {
@@ -1031,10 +991,6 @@ button:disabled {
     }
 }
 @media (max-width: 359px) {
-    .top-total span {
-        display: none;
-    }
-
     .brand-name {
         font-size: 1rem;
     }
@@ -1049,10 +1005,6 @@ button:disabled {
     .topbar {
         padding: 0 1.1rem;
         border-radius: 20px 20px 0 0;
-    }
-
-    .top-total {
-        display: none;
     }
 
     .new-game {
