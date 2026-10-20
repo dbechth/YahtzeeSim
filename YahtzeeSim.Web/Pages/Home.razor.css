@@ -463,38 +463,53 @@ button:disabled {
 }
 
 .score-grid {
+    --score-cols: 29% 10% repeat(6, minmax(0, 1fr));
     flex: 1;
     width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
+    /* Header, Upper Pace, Upper heading, 6 upper cells, Upper Total, Bonus, Lower heading, 7 lower cells, then four
+       summary rows. Only the 13 category rows grow; every other row keeps its compact height. */
+    display: grid;
+    grid-template-rows:
+        auto auto auto
+        repeat(6, minmax(1.1rem, 1fr))
+        auto auto auto
+        repeat(7, minmax(1.1rem, 1fr))
+        auto auto auto auto;
     font-size: clamp(0.62rem, 2.9vw, 0.8rem);
 }
 
-.score-grid .col-category {
-    width: 29%;
+.score-grid colgroup {
+    display: none;
 }
 
-.score-grid .col-prob {
-    width: 10%;
+.score-grid thead,
+.score-grid tbody {
+    display: contents;
 }
 
-.score-grid .col-game {
-    width: 10.17%;
+.score-grid tr {
+    display: grid;
+    grid-template-columns: var(--score-cols);
+    min-width: 0;
+}
+
+.score-grid thead tr {
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .score-grid th,
 .score-grid td {
+    display: block;
+    align-content: center;
+    min-height: 0.95rem;
     padding: 0 1px;
     border-bottom: 1px solid var(--rule);
     text-align: center;
-    vertical-align: middle;
 }
 
 .score-grid th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    height: 1.2rem;
     background: var(--section);
     font-size: 0.62rem;
     font-weight: 800;
@@ -505,9 +520,9 @@ button:disabled {
 
 .score-grid .cat-head,
 .score-grid .odds-head {
-    position: sticky;
+    position: static;
     width: auto;
-    height: 1.2rem;
+    height: auto;
     margin: 0;
     padding: 0 1px;
     overflow: visible;
@@ -543,23 +558,12 @@ button:disabled {
     color: var(--muted);
 }
 
-.score-row td,
-.pace-row td,
-.totals-row td,
-.yahtzee-bonus-row td {
-    height: 1rem;
-}
-
-.score-row td {
-    height: 1.2rem;
-}
-
 .section-row {
     background: var(--section);
 }
 
 .section-row td {
-    height: 1rem;
+    grid-column: 1 / -1;
     padding: 0 0.5rem;
     text-align: left;
     font-size: 0.6rem;
@@ -941,22 +945,10 @@ button:disabled {
         max-width: 3.8rem;
     }
 
-    /* Compact minimum row heights: on short screens everything still fits, and any spare height stretches the rows. */
+    /* Narrow screens: the Roll button must stay reachable, so the summary rows are as small as they can be. */
     .score-grid th,
-    .score-grid .cat-head,
-    .score-grid .odds-head {
-        height: 0.95rem;
-    }
-
-    .score-row td {
-        height: 1.1rem;
-    }
-
-    .pace-row td,
-    .totals-row td,
-    .yahtzee-bonus-row td,
-    .section-row td {
-        height: 0.85rem;
+    .score-grid td {
+        min-height: 0.85rem;
     }
 
     .score-btn {
@@ -1102,19 +1094,8 @@ button:disabled {
     }
 
     .score-grid {
+        --score-cols: 27% 11% repeat(6, minmax(0, 1fr));
         font-size: clamp(0.72rem, 1.45vh + 0.2rem, 0.95rem);
-    }
-
-    .score-grid .col-category {
-        width: 27%;
-    }
-
-    .score-grid .col-prob {
-        width: 11%;
-    }
-
-    .score-grid .col-game {
-        width: 10.33%;
     }
 
     .score-grid th,
