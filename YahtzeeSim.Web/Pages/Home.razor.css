@@ -1017,6 +1017,7 @@ button:disabled {
         border-radius: 4px;
     }
 
+    /* Space left under the compact table goes to the turn card, with the dice centred in it. */
     .turn-card {
         flex: 1 0 auto;
     }
@@ -1024,6 +1025,7 @@ button:disabled {
     .dice-row {
         flex: 1 1 auto;
     }
+
 
     .dock-edge {
         display: inline-flex;
@@ -1052,30 +1054,6 @@ button:disabled {
         padding: 0.3rem 0.3rem 0.4rem;
     }
 }
-/* Tall phones have room once the score rows are compact: show the dice three over two, larger. */
-@media (max-width: 759px) and (min-height: 740px) {
-    .dice-row {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 0.5rem 0.5rem;
-    }
-
-    .dice-row .die {
-        grid-column: span 2;
-    }
-
-    .dice-row .die:nth-child(4) {
-        grid-column: 2 / span 2;
-    }
-
-    .dice-row .die:nth-child(5) {
-        grid-column: 4 / span 2;
-    }
-
-    .die {
-        max-width: 5.2rem;
-    }
-}
-
 @media (max-width: 359px) {
     .top-total span {
         display: none;
