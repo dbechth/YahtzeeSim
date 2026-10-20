@@ -643,19 +643,16 @@ button:disabled {
 .score-btn.valid {
     border: 1px solid var(--mint-deep);
     box-shadow: inset 0 0 0 1px var(--mint-deep);
-    background: #eaf7ec;
-    color: #1d5a3c;
+    background: #c9f0d4;
+    color: #14532d;
 }
 
-.score-btn.scratch {
-    border: 2px dashed #a8620f;
-    background: #fff3d9;
-    color: #6b3f08;
-}
-
-.score-btn.valid:hover,
-.score-btn.scratch:hover {
+.score-btn.valid:hover {
     background: var(--mint);
+}
+
+.score-btn.scratch:hover {
+    background: #f1f0e6;
 }
 
 .score-btn.filled {
