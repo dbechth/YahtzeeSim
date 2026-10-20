@@ -38,6 +38,7 @@ Terminology: **Card** = one 13-category scoresheet (a "game" column G1–G6). **
 | UR-15 | I can sign in with my Google account (no separate password) and pick a nickname, so my scores belong to me. Facebook is planned later. |
 | UR-16 | I can see a leaderboard of the best scores, separately for Single and Full Sheet, for all time and for this week, and see where I rank. |
 | UR-17 | My finished games still count if I was offline when I finished them. |
+| UR-18 | As the owner I can analyse how people play, so every roll, hold, score and undo of a signed-in player is recorded with its timestamp. |
 
 ## 3. Software requirements
 
@@ -197,6 +198,9 @@ Accounts use the provider's own sign-in; the app never handles or stores a passw
 | SW-LDB-04 | A game finished offline shall be queued in browser storage and uploaded after the app is back online or on the next launch. Entries are tagged with the user id, retried on temporary failures and dropped on permanent ones. | [ScoreQueue.cs](../YahtzeeSim.Web/Services/ScoreQueue.cs) | UR-17 | ✅ Verified: played a game offline, score queued, uploaded after reconnect |
 | SW-LDB-05 | The leaderboard shall rank each player by their best score, with separate Single and Full Sheet boards and All-time and This-week (calendar week from Monday 00:00 UTC) views. It shows the top 50, shares the rank on ties, highlights the signed-in player and shows their rank even when outside the top 50. | [leaderboard.ts](../functions/api/leaderboard.ts), [LeaderboardView.razor](../YahtzeeSim.Web/Components/LeaderboardView.razor) | UR-16 | ✅ |
 | SW-LDB-06 | The leaderboard is opened from a top-bar button as a dialog over the game (so a game in progress is never lost) and requires an internet connection. | [Home.razor](../YahtzeeSim.Web/Pages/Home.razor) | UR-16 | ✅ |
+| SW-LOG-01 | For a signed-in player the app shall record each Roll (dice after the roll), Hold and Unhold press (which die and the dice at the time, so hold state is rebuilt by replay and a die held then released before a roll shows as a change of mind), Score and Scratch (dice scored, card, category, points, Yahtzee bonus) and Undo (dice after), each with a per-game sequence number, a client timestamp (UTC milliseconds), the turn number and the roll number. Starting a new game is not recorded. | [ActionLog.cs](../YahtzeeSim.Web/Services/ActionLog.cs), [Home.razor](../YahtzeeSim.Web/Pages/Home.razor) | UR-18 | ✅ |
+| SW-LOG-02 | Actions shall be queued in browser storage, tagged with the user id, and uploaded in batches of up to 100 (after each score or undo, on launch and on reconnect). Temporary failures are retried; permanent rejections are dropped. Play never waits for the upload. | [ActionLog.cs](../YahtzeeSim.Web/Services/ActionLog.cs), [MainLayout.razor](../YahtzeeSim.Web/Layout/MainLayout.razor) | UR-18 | ✅ |
+| SW-LOG-03 | `POST /api/actions` shall require a signed-in user and reject malformed batches (unknown action, impossible dice, turn, card or points, fields that do not belong to the action), more than 10,000 actions per hour and more than 5,000 per game. Re-sending a (game, sequence number) shall be ignored. Rows are stored in `game_actions`. | [actions.ts](../functions/api/actions.ts), [validate.ts](../functions/_lib/validate.ts), [0002_game_actions.sql](../migrations/0002_game_actions.sql) | UR-18 | ✅ |
 
 ## 4. Traceability matrix (UR → SW)
 
@@ -219,6 +223,7 @@ Accounts use the provider's own sign-in; the app never handles or stores a passw
 | UR-15 Sign in and nickname | ACC-01 … ACC-08 |
 | UR-16 Leaderboard | LDB-01, LDB-02, LDB-03, LDB-05, LDB-06 |
 | UR-17 Offline games still count | ACC-07, LDB-04 |
+| UR-18 Record gameplay for analysis | LOG-01, LOG-02, LOG-03 |
 
 ## 5. Remaining work
 

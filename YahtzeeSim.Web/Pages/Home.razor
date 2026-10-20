@@ -2,6 +2,7 @@
 @inject IJSRuntime JS
 @inject AccountService Account
 @inject ScoreQueue Queue
+@inject ActionLog Actions
 
 <PageTitle>YahtzeeSim</PageTitle>
 
@@ -866,11 +867,17 @@
     private async Task RollButtonClickedAsync()
     {
         _isRollPressVisual = false;
-        if (!_isGameStarted || !_engine.CanRoll || !_engine.RollDice())
+        if (!_isGameStarted || !_engine.CanRoll)
         {
             return;
         }
 
+        if (!_engine.RollDice())
+        {
+            return;
+        }
+
+        await Actions.RecordAsync(_engine, GameActionType.Roll, TurnState.Capture(_engine));
         _noticeText = string.Empty;
         _announcement = $"Roll {_engine.RollCount} of {YahtzeeGameEngine.RollsPerTurn}. Dice: {string.Join(", ", _engine.Dice.Select(d => d.Value))}."
             + (_engine.IsYahtzeeRolled ? " Yahtzee!" : string.Empty)
@@ -909,7 +916,14 @@
             return;
         }
 
-        _engine.ToggleHold(dieId);
+        if (!_engine.ToggleHold(dieId))
+        {
+            return;
+        }
+
+        var state = TurnState.Capture(_engine);
+        bool isHeld = _engine.Dice.First(d => d.Id == dieId).IsHeld;
+        await Actions.RecordAsync(_engine, isHeld ? GameActionType.Hold : GameActionType.Unhold, state, dieId: dieId);
         RefreshAll(true);
         await PersistAsync();
     }
@@ -922,6 +936,8 @@
             Guid gameId = _engine.GameId;
             if (_engine.Undo())
             {
+                var state = TurnState.Capture(_engine);
+                await Actions.RecordAsync(_engine, GameActionType.Undo, state);
                 if (wasComplete)
                 {
                     await Queue.DiscardAsync(gameId);
@@ -931,6 +947,7 @@
                 _announcement = "Last score undone.";
                 await RefreshOddsAfterRenderAsync();
                 await PersistAsync();
+                await Actions.FlushAsync();
             }
         }
     }
@@ -945,7 +962,7 @@
         switch (GetPickStatus(gameIndex, category))
         {
             case PickStatus.Valid:
-                await FinishScoreAsync(_engine.TryApplyScore(gameIndex, category, _currentPenColorHex), gameIndex, category);
+                await FinishScoreAsync(() => _engine.TryApplyScore(gameIndex, category, _currentPenColorHex), gameIndex, category);
                 break;
 
             case PickStatus.Scratch:
@@ -953,7 +970,7 @@
                     "Record a zero?",
                     $"{ScoreRules.GetDisplayName(category)} in Game {gameIndex + 1} does not score with these dice. Mark it with an X (0 points)?",
                     "Mark X",
-                    async () => await FinishScoreAsync(_engine.TryScratch(gameIndex, category, _currentPenColorHex), gameIndex, category));
+                    async () => await FinishScoreAsync(() => _engine.TryScratch(gameIndex, category, _currentPenColorHex), gameIndex, category));
                 break;
 
             default:
@@ -964,12 +981,24 @@
         }
     }
 
-    private async Task FinishScoreAsync(ScoreResult result, int gameIndex, ScoreCategory category)
+    private async Task FinishScoreAsync(Func<ScoreResult> apply, int gameIndex, ScoreCategory category)
     {
+        // Scoring clears the dice, so capture them first.
+        var scored = TurnState.Capture(_engine);
+        var result = apply();
         if (!result.Applied)
         {
             return;
         }
+
+        await Actions.RecordAsync(
+            _engine,
+            result.WasScratch ? GameActionType.Scratch : GameActionType.Score,
+            scored,
+            gameIndex: gameIndex,
+            category: category,
+            points: result.Score,
+            bonus: result.YahtzeeBonusAwarded);
 
         string name = ScoreRules.GetDisplayName(category);
         string recorded = result.WasScratch
@@ -993,6 +1022,8 @@
         {
             await SubmitFinishedGameAsync();
         }
+
+        await Actions.FlushAsync();
     }
 
     private PickStatus GetPickStatus(int gameIndex, ScoreCategory category)

@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject AccountService Account
 @inject ScoreQueue Queue
+@inject ActionLog Actions
 @inject IJSRuntime JS
 
 <div class="app-shell">
@@ -33,6 +34,7 @@
         Account.Changed += OnAccountChanged;
         await Account.InitializeAsync();
         await Queue.FlushAsync();
+        await Actions.FlushAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -62,6 +64,7 @@
         }
 
         await Queue.FlushAsync();
+        await Actions.FlushAsync();
     }
 
     private void OnAccountChanged() => _ = InvokeAsync(StateHasChanged);

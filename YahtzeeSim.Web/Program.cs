@@ -11,5 +11,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<ScoreQueue>();
+builder.Services.AddScoped<ActionLog>();
 
 await builder.Build().RunAsync();
