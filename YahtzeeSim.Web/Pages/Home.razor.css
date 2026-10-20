@@ -272,7 +272,7 @@ button:disabled {
 .die {
     position: relative;
     width: 100%;
-    max-height: 4.6rem;
+    max-width: 4.6rem;
     aspect-ratio: 1 / 1;
     justify-self: center;
     border-radius: 22%;
@@ -978,7 +978,51 @@ button:disabled {
     }
 
     .die {
-        max-height: 3.3rem;
+        max-width: 3.8rem;
+    }
+
+    /* Compact score rows: the table keeps its natural height instead of stretching, and the turn card takes the space. */
+    .card-panel,
+    .score-wrap {
+        flex: 0 1 auto;
+    }
+
+    .score-scroll {
+        flex: 0 1 auto;
+    }
+
+    .score-grid {
+        flex: none;
+        font-size: clamp(0.58rem, 2.6vw, 0.72rem);
+    }
+
+    .score-grid th,
+    .score-grid .cat-head,
+    .score-grid .odds-head {
+        height: 0.95rem;
+    }
+
+    .score-row td {
+        height: 1.1rem;
+    }
+
+    .pace-row td,
+    .totals-row td,
+    .yahtzee-bonus-row td,
+    .section-row td {
+        height: 0.85rem;
+    }
+
+    .score-btn {
+        border-radius: 4px;
+    }
+
+    .turn-card {
+        flex: 1 0 auto;
+    }
+
+    .dice-row {
+        flex: 1 1 auto;
     }
 
     .dock-edge {
@@ -1008,6 +1052,30 @@ button:disabled {
         padding: 0.3rem 0.3rem 0.4rem;
     }
 }
+/* Tall phones have room once the score rows are compact: show the dice three over two, larger. */
+@media (max-width: 759px) and (min-height: 740px) {
+    .dice-row {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.5rem 0.5rem;
+    }
+
+    .dice-row .die {
+        grid-column: span 2;
+    }
+
+    .dice-row .die:nth-child(4) {
+        grid-column: 2 / span 2;
+    }
+
+    .dice-row .die:nth-child(5) {
+        grid-column: 4 / span 2;
+    }
+
+    .die {
+        max-width: 5.2rem;
+    }
+}
+
 @media (max-width: 359px) {
     .top-total span {
         display: none;
@@ -1103,7 +1171,6 @@ button:disabled {
     }
 
     .die {
-        max-height: none;
         max-width: 6.5rem;
     }
 
