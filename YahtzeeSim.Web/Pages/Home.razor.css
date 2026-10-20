@@ -981,21 +981,7 @@ button:disabled {
         max-width: 3.8rem;
     }
 
-    /* Compact score rows: the table keeps its natural height instead of stretching, and the turn card takes the space. */
-    .card-panel,
-    .score-wrap {
-        flex: 0 1 auto;
-    }
-
-    .score-scroll {
-        flex: 0 1 auto;
-    }
-
-    .score-grid {
-        flex: none;
-        font-size: clamp(0.58rem, 2.6vw, 0.72rem);
-    }
-
+    /* Compact minimum row heights: on short screens everything still fits, and any spare height stretches the rows. */
     .score-grid th,
     .score-grid .cat-head,
     .score-grid .odds-head {
@@ -1016,16 +1002,6 @@ button:disabled {
     .score-btn {
         border-radius: 4px;
     }
-
-    /* Space left under the compact table goes to the turn card, with the dice centred in it. */
-    .turn-card {
-        flex: 1 0 auto;
-    }
-
-    .dice-row {
-        flex: 1 1 auto;
-    }
-
 
     .dock-edge {
         display: inline-flex;
