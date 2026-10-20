@@ -93,7 +93,12 @@
                 aria-pressed="@(shownHeld ? "true" : "false")"
                 aria-label="@GetDieLabel(die, index)"
                 @onclick="() => ToggleHoldAsync(die.Id)">
-                <span class="die-face" aria-hidden="true">@GetDieVisualText(die)</span>
+                <span class="die-face" aria-hidden="true">
+                    @foreach (bool lit in GetDiePips(die))
+                    {
+                        <i class="@(lit ? "pip" : null)"></i>
+                    }
+                </span>
                 @if (shownHeld)
                 {
                     <span class="die-tag" aria-hidden="true">Held</span>
@@ -1128,14 +1133,13 @@
         int count = _engine.Cards[gameIndex].YahtzeeBonusCount;
         return $"Game {gameIndex + 1} Yahtzee bonuses: {count}";
     }
-    private string GetDieVisualText(DieState die)
-    {
-        if (_isRollPressVisual && !die.IsHeld)
-        {
-            return string.Empty;
-        }
+    // Pips lit on the 3x3 grid of a die face, row by row.
+    private static readonly string[] PipPatterns = ["", "....#....", "#.......#", "#...#...#", "#.#...#.#", "#.#.#.#.#", "#.##.##.#"];
 
-        return die.Value <= 0 ? string.Empty : ToDieGlyph(die.Value);
+    private bool[] GetDiePips(DieState die)
+    {
+        string pattern = (_isRollPressVisual && !die.IsHeld) || die.Value <= 0 ? string.Empty : PipPatterns[die.Value];
+        return Enumerable.Range(0, 9).Select(i => i < pattern.Length && pattern[i] == '#').ToArray();
     }
 
     private string GetDieVisualClass(DieState die)
@@ -1146,20 +1150,6 @@
         }
 
         return IsShownHeld(die) ? "held" : string.Empty;
-    }
-
-    private static string ToDieGlyph(int value)
-    {
-        return value switch
-        {
-            1 => "\u2680",
-            2 => "\u2681",
-            3 => "\u2682",
-            4 => "\u2683",
-            5 => "\u2684",
-            6 => "\u2685",
-            _ => string.Empty
-        };
     }
 
     private string GetColumnClass(int gameIndex)
