@@ -44,10 +44,13 @@
    <div class="play-panel turn-card">
     <div class="turn-overline">
         <span class="turn-mode">@(_isGameStarted ? ModeLabel : "New game")</span>
-        @if (TurnNumber is int turn)
-        {
-            <span class="round-pill">Turn @turn</span>
-        }
+        <span class="turn-side">
+            <button type="button" class="undo" disabled="@(!_isGameStarted || !_engine.CanUndo)" @onclick="UndoAsync"><span aria-hidden="true">&#8630; </span>Undo</button>
+            @if (TurnNumber is int turn)
+            {
+                <span class="round-pill">Turn @turn</span>
+            }
+        </span>
     </div>
     <p class="turn-title">@Status.Headline</p>
     <p class="turn-hint">@Status.Detail</p>
@@ -120,7 +123,6 @@
             <span>Roll</span>
             <span class="keycap" aria-hidden="true">@(_isGameStarted ? _engine.RollCount : 0)/@YahtzeeGameEngine.RollsPerTurn</span>
         </button>
-        <button type="button" class="undo" disabled="@(!_isGameStarted || !_engine.CanUndo)" @onclick="UndoAsync"><span aria-hidden="true">&#8630; </span>Undo</button>
     </section>
    </div>
    <div class="card-panel">
