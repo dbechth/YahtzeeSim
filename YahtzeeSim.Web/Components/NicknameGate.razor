@@ -28,7 +28,7 @@
     private async Task SaveAsync()
     {
         string nickname = _nickname.Trim();
-        if (nickname.Length is < 3 or > 16 || !NicknameChars.IsMatch(nickname))
+        if (!AccountService.IsValidNickname(nickname))
         {
             _error = "Use 3 to 16 letters, numbers, spaces, _ or -, starting and ending with a letter or number.";
             return;
@@ -46,6 +46,4 @@
             _ => null
         };
     }
-
-    private static readonly System.Text.RegularExpressions.Regex NicknameChars = new("^[A-Za-z0-9][A-Za-z0-9 _-]*[A-Za-z0-9]$");
 }

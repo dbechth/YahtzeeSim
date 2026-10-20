@@ -44,6 +44,11 @@ public sealed class AccountService(HttpClient http, IJSRuntime js)
 
     public event Action? Changed;
 
+    private static readonly System.Text.RegularExpressions.Regex NicknameChars = new("^[A-Za-z0-9][A-Za-z0-9 _-]*[A-Za-z0-9]$");
+
+    public static bool IsValidNickname(string nickname) =>
+        nickname.Length is >= 3 and <= 16 && NicknameChars.IsMatch(nickname);
+
     public async Task InitializeAsync()
     {
         try

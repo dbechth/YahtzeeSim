@@ -752,8 +752,50 @@ button:disabled {
 
 .modal-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     justify-content: center;
+}
+
+.nick-form {
+    display: grid;
+    gap: 0.35rem;
+    margin-bottom: 0.7rem;
+}
+
+.nick-form label {
+    font-weight: 700;
+    color: var(--forest);
+}
+
+.nick-form input {
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+.nick-help {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.nick-error {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #8f1d1d;
+}
+
+.nick-error:empty {
+    display: none;
+}
+
+.nick-notice {
+    font-weight: 700;
+    color: #14532d;
 }
 
 .modal-actions button {

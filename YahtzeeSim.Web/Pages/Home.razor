@@ -370,15 +370,41 @@
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-title" tabindex="-1" @ref="_dialogRef">
             <h3 id="account-title">Account</h3>
             <p class="modal-text">Signed in as <strong>@Account.Nickname</strong>@(Account.IsOffline ? " (offline)" : null)</p>
+            @if (_editingNickname)
+            {
+                <form class="nick-form" @onsubmit="SaveNicknameAsync">
+                    <label for="nick-edit">New nickname</label>
+                    <input id="nick-edit" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false"
+                           aria-describedby="nick-edit-help nick-edit-error" aria-invalid="@(_nicknameError != null ? "true" : "false")"
+                           @bind="_nicknameInput" @bind:event="oninput" @onkeydown="OnNicknameKeyDown" @ref="_nicknameRef" />
+                    <p id="nick-edit-help" class="nick-help">3 to 16 letters, numbers, spaces, _ or -. It shows on the leaderboard next to all your scores.</p>
+                    <p id="nick-edit-error" class="nick-error" role="alert">@_nicknameError</p>
+                    <div class="modal-actions">
+                        <button type="submit" disabled="@_nicknameSaving">Save</button>
+                        <button type="button" class="secondary" @onclick="CancelNicknameEdit">Cancel</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(_nicknameNotice))
+                {
+                    <p class="modal-text nick-notice" role="status">@_nicknameNotice</p>
+                }
+            }
             @if (_pendingScores > 0)
             {
                 <p class="modal-text">@_pendingScores finished @(_pendingScores == 1 ? "game is" : "games are") waiting to upload. @(_pendingScores == 1 ? "It" : "They") will upload when you sign in as @Account.Nickname again with a connection.</p>
             }
             <p class="modal-text"><a href="privacy" target="_blank" rel="noopener">Privacy</a></p>
-            <div class="modal-actions">
-                <button type="button" @onclick="SignOutAsync">Sign out</button>
-                <button type="button" class="secondary" @onclick="CloseAccount">Close</button>
-            </div>
+            @if (!_editingNickname)
+            {
+                <div class="modal-actions">
+                    <button type="button" @onclick="StartNicknameEdit">Change nickname</button>
+                    <button type="button" @onclick="SignOutAsync">Sign out</button>
+                    <button type="button" class="secondary" @onclick="CloseAccount">Close</button>
+                </div>
+            }
         </div>
     </div>
 }
@@ -419,6 +445,13 @@
     private bool _showResumePrompt;
     private bool _showLeaderboard;
     private bool _showAccount;
+    private bool _editingNickname;
+    private bool _focusNicknameInput;
+    private bool _nicknameSaving;
+    private string _nicknameInput = string.Empty;
+    private string? _nicknameError;
+    private string? _nicknameNotice;
+    private ElementReference _nicknameRef;
     private int _pendingScores;
     private string? _pendingSaveJson;
     private ConfirmRequest? _confirm;
@@ -467,19 +500,88 @@
         _showAccount = true;
     }
 
-    private void CloseAccount() => _showAccount = false;
+    private void CloseAccount()
+    {
+        _showAccount = false;
+        _editingNickname = false;
+        _nicknameNotice = null;
+    }
 
     private void OnAccountKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Escape")
         {
-            CloseAccount();
+            if (_editingNickname)
+            {
+                CancelNicknameEdit();
+            }
+            else
+            {
+                CloseAccount();
+            }
+        }
+    }
+
+    private void StartNicknameEdit()
+    {
+        _nicknameInput = Account.Nickname ?? string.Empty;
+        _nicknameError = null;
+        _nicknameNotice = null;
+        _editingNickname = true;
+        _focusNicknameInput = true;
+    }
+
+    private void CancelNicknameEdit()
+    {
+        _editingNickname = false;
+        _nicknameError = null;
+    }
+
+    private void OnNicknameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            CancelNicknameEdit();
+        }
+    }
+
+    private async Task SaveNicknameAsync()
+    {
+        string nickname = _nicknameInput.Trim();
+        if (string.Equals(nickname, Account.Nickname, StringComparison.Ordinal))
+        {
+            CancelNicknameEdit();
+            return;
+        }
+
+        if (!AccountService.IsValidNickname(nickname))
+        {
+            _nicknameError = "Use 3 to 16 letters, numbers, spaces, _ or -, starting and ending with a letter or number.";
+            return;
+        }
+
+        _nicknameSaving = true;
+        _nicknameError = null;
+        var result = await Account.SetNicknameAsync(nickname);
+        _nicknameSaving = false;
+        _nicknameError = result switch
+        {
+            NicknameResult.Taken => "That nickname is taken. Try another.",
+            NicknameResult.Invalid => "That nickname is not allowed. Try another.",
+            NicknameResult.Failed => "Could not save. Check your connection and try again.",
+            _ => null
+        };
+
+        if (result == NicknameResult.Saved)
+        {
+            _editingNickname = false;
+            _nicknameNotice = "Nickname updated.";
         }
     }
 
     private async Task SignOutAsync()
     {
-        _showAccount = false;
+        CloseAccount();
         await Account.SignOutAsync();
     }
 
@@ -510,6 +612,19 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         string? dialog = ActiveDialog;
+        if (_focusNicknameInput)
+        {
+            _focusNicknameInput = false;
+            try
+            {
+                await _nicknameRef.FocusAsync();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or JSException)
+            {
+                // Focus is a convenience; the field still works without it.
+            }
+        }
+
         if (dialog != _focusedDialog)
         {
             _focusedDialog = dialog;

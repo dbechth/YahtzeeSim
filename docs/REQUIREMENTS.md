@@ -192,6 +192,7 @@ Accounts use the provider's own sign-in; the app never handles or stores a passw
 | SW-ACC-06 | State-changing API calls shall require a JSON content type and, when an `Origin` header is sent, the same origin as the request (CSRF protection). API responses shall be `no-store`. | [http.ts](../functions/_lib/http.ts) | UR-15 | ✅ |
 | SW-ACC-07 | When the server cannot be reached (offline, 5xx or a non-JSON reply) the app shall use the cached profile from the last successful sign-in so the game stays playable; a definite 401 shall sign the user out. | [AccountService.cs](../YahtzeeSim.Web/Services/AccountService.cs) | UR-13, UR-17 | ✅ |
 | SW-ACC-08 | An account menu shall show the signed-in nickname and a Sign out button. A privacy page (`/privacy`) shall explain what is stored. | [Home.razor](../YahtzeeSim.Web/Pages/Home.razor), [Privacy.razor](../YahtzeeSim.Web/Pages/Privacy.razor) | UR-15 | ✅ |
+| SW-ACC-09 | A signed-in user shall be able to change their nickname from the account menu under the same rules as SW-ACC-05. The account is identified by its internal `id`, so the new nickname applies to all of the user's existing scores and leaderboard rows. | [Home.razor](../YahtzeeSim.Web/Pages/Home.razor), [me.ts](../functions/api/me.ts) | UR-15 | ✅ |
 | SW-LDB-01 | Each game shall have a stable `GameId` that survives save/load. A completed game exposes `FinalScore` (the game total in Single mode, the card total in Full Sheet mode). | [YahtzeeGameEngine.cs](../YahtzeeSim.Engine/YahtzeeGameEngine.cs) | UR-16 | ✅ |
 | SW-LDB-02 | When a game completes, the app shall submit (game id, mode, total) once. Re-sending the same game id replaces the earlier score, so undoing and re-scoring the last box does not create duplicates. | [Home.razor](../YahtzeeSim.Web/Pages/Home.razor), [scores.ts](../functions/api/scores.ts) | UR-16 | ✅ |
 | SW-LDB-03 | The server shall reject totals outside the possible range (Single 0 to 1575, Full Sheet 0 to 2250), unknown modes, users without a nickname, and more than 20 new scores per hour. | [validate.ts](../functions/_lib/validate.ts), [scores.ts](../functions/api/scores.ts) | UR-16 | ✅ |
@@ -220,7 +221,7 @@ Accounts use the provider's own sign-in; the app never handles or stores a passw
 | UR-12 Cross-platform | UIW-01, PLT-01, PLT-02, PLT-04 |
 | UR-13 Reliable start / recovery | PLT-05, PLT-06, OPS-04, ACC-07 |
 | UR-14 Maintainable / deployable | PLT-03, OPS-01, OPS-02, OPS-03, OPS-05, NFR-01 |
-| UR-15 Sign in and nickname | ACC-01 … ACC-08 |
+| UR-15 Sign in and nickname | ACC-01 … ACC-09 |
 | UR-16 Leaderboard | LDB-01, LDB-02, LDB-03, LDB-05, LDB-06 |
 | UR-17 Offline games still count | ACC-07, LDB-04 |
 | UR-18 Record gameplay for analysis | LOG-01, LOG-02, LOG-03 |
