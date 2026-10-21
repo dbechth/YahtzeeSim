@@ -140,6 +140,17 @@ npx wrangler login                    # or set CLOUDFLARE_API_TOKEN / CLOUDFLARE
 
 Use `-OutputDir <path>` to write elsewhere.
 
+### Analysing Full Sheet Strategy
+
+After exporting, build a rule-based strategy report from the finished Full Sheet games:
+
+```powershell
+.\scripts\analyze-strategy.ps1 -Open             # writes exports/analysis/ and opens index.html
+.\scripts\analyze-strategy.ps1 -Simulations 5000 # more simulated reference games (slower, tighter percentiles)
+```
+
+Each game is replayed from its actions and must reproduce the submitted total. Every keep, early stop and box choice is graded against a reference strategy built on an exact single-card solver (245.87 points per card), and each total is split into baseline + Full Sheet choice + dice luck − decision cost. Findings come only from the fixed rule table in `YahtzeeSim.Analysis/Rules/StrategyRules.cs`; each shows its condition, threshold and evidence. The output (`index.html`, one HTML and Markdown page per player, `decisions.csv`) is personal data and stays in the git-ignored `exports/` folder. The same export and seed always give the same report.
+
 ### Adding Facebook Later
 
 Add a provider entry in `functions/_lib/providers.ts` (endpoints, scopes, claim checks), add its client id and secret as Pages secrets, and add a button in `YahtzeeSim.Web/Components/SignInGate.razor`.

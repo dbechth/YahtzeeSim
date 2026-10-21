@@ -36,5 +36,8 @@ jobs:
       - name: Run engine tests
         run: dotnet test YahtzeeSim.Engine.Tests/YahtzeeSim.Engine.Tests.csproj -c Release
 
+      - name: Run strategy analysis tests
+        run: dotnet test YahtzeeSim.Analysis.Tests/YahtzeeSim.Analysis.Tests.csproj -c Release
+
       - name: Build Web
         run: dotnet build YahtzeeSim.Web/YahtzeeSim.Web.csproj -c Release

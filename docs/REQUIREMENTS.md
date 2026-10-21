@@ -11,6 +11,7 @@ A status column shows where the code meets, misses or disagrees with the intent 
 | Product | Solo Yahtzee scorecard/simulator with dice rolling, hold, scoring, odds guidance and a 6-card "Full Sheet" mode |
 | Front end | [YahtzeeSim.Web](../YahtzeeSim.Web) – Blazor WebAssembly PWA, static-hosted on Cloudflare Pages, installable via "Add to Home Screen". The only front end: the MAUI and WinForms apps were removed (history stays in git) |
 | Shared engine | [YahtzeeSim.Engine](../YahtzeeSim.Engine) – the single game engine (decided), a class library with no UI dependencies, referenced by Web and the test project, namespace `YahtzeeSim.Engine` |
+| Strategy analysis | [YahtzeeSim.Analysis](../YahtzeeSim.Analysis) – offline, owner-only tooling that replays exported Full Sheet games and writes rule-based strategy reports (section 3.12); not part of the deployed app |
 
 Status legend: ✅ Implemented · 🟡 Partial · ❌ Not implemented. Engine behaviour is covered by the xUnit tests in [YahtzeeSim.Engine.Tests](../YahtzeeSim.Engine.Tests).
 
@@ -39,6 +40,7 @@ Terminology: **Card** = one 13-category scoresheet (a "game" column G1–G6). **
 | UR-16 | I can see a leaderboard of the best scores, separately for Single and Full Sheet, for all time and for this week, and see where I rank. |
 | UR-17 | My finished games still count if I was offline when I finished them. |
 | UR-18 | As the owner I can analyse how people play, so every roll, hold, score and undo of a signed-in player is recorded with its timestamp. |
+| UR-19 | As the owner I can run a script that shows how each player approaches Full Sheet games, with rule-based findings and the evidence behind them (no AI opinions), as a first step toward giving players feedback. |
 
 ## 3. Software requirements
 
@@ -203,6 +205,21 @@ Accounts use the provider's own sign-in; the app never handles or stores a passw
 | SW-LOG-02 | Actions shall be queued in browser storage, tagged with the user id, and uploaded in batches of up to 100 (after each score or undo, on launch and on reconnect). Temporary failures are retried; permanent rejections are dropped. Play never waits for the upload. | [ActionLog.cs](../YahtzeeSim.Web/Services/ActionLog.cs), [MainLayout.razor](../YahtzeeSim.Web/Layout/MainLayout.razor) | UR-18 | ✅ |
 | SW-LOG-03 | `POST /api/actions` shall require a signed-in user and reject malformed batches (unknown action, impossible dice, turn, card or points, fields that do not belong to the action), more than 10,000 actions per hour and more than 5,000 per game. Re-sending a (game, sequence number) shall be ignored. Rows are stored in `game_actions`. | [actions.ts](../functions/api/actions.ts), [validate.ts](../functions/_lib/validate.ts), [0002_game_actions.sql](../migrations/0002_game_actions.sql) | UR-18 | ✅ |
 
+### 3.12 Full Sheet strategy analysis (ANA)
+
+Offline tooling for the owner; it does not change the app. Library [YahtzeeSim.Analysis](../YahtzeeSim.Analysis), console tool [YahtzeeSim.Analysis.Cli](../YahtzeeSim.Analysis.Cli), entry point [analyze-strategy.ps1](../scripts/analyze-strategy.ps1), tests [YahtzeeSim.Analysis.Tests](../YahtzeeSim.Analysis.Tests).
+
+| ID | Requirement | Source | UR | Status |
+|---|---|---|---|---|
+| SW-ANA-01 | The analysis shall read the CSV export (`users`, `scores`, `actions`) and use only Full Sheet games that have a submitted score. Each is replayed from its actions (holds rebuilt from Hold/Unhold presses, Undo restores the turn and drops rolls of the next turn) and checked: contiguous sequence numbers, held dice unchanged on reroll, points matching the engine's `ScoreRules`, 78 filled boxes and a replayed total equal to the submitted total. Games that fail, unfinished games and Single games are listed with the reason and left out. | [GameReplayer.cs](../YahtzeeSim.Analysis/Replay/GameReplayer.cs), [AnalysisRunner.cs](../YahtzeeSim.Analysis/AnalysisRunner.cs) | UR-19 | ✅ |
+| SW-ANA-02 | A single-card solver shall compute, by backward induction over filled boxes and upper sum (capped at 63), the exact expected future points of any card under Full Sheet rules (no Yahtzee bonus, no Joker). The value of an empty card is 245.87. The table is cached and rebuilt when the scoring rules change. | [CardSolver.cs](../YahtzeeSim.Analysis/Solver/CardSolver.cs), [DiceTables.cs](../YahtzeeSim.Analysis/Solver/DiceTables.cs) | UR-19 | ✅ |
+| SW-ANA-03 | The reference strategy shall value a placement as points now (plus any upper bonus reached) plus the change in that card's expected future points, choose the best open box on any of the six cards, and choose keeps that maximise the expected value of that choice. It and a greedy baseline (points now only) shall be simulated with seeded dice. | [SheetEvaluator.cs](../YahtzeeSim.Analysis/Solver/SheetEvaluator.cs), [BotSimulator.cs](../YahtzeeSim.Analysis/Solver/BotSimulator.cs) | UR-19 | ✅ |
+| SW-ANA-04 | Every keep after roll 1 and 2, every early stop and every box choice shall be graded: cost = value of the reference choice − value of the player's choice (never negative). Each game total shall split exactly into baseline (6 × 245.87) + Full Sheet choice + dice luck − decision cost, and the luck-free score (total − luck) shall be reported. | [DecisionGrader.cs](../YahtzeeSim.Analysis/Grading/DecisionGrader.cs) | UR-19 | ✅ |
+| SW-ANA-05 | A descriptive profile per player shall report results per box against the reference, upper bonus rate and average count per face, when boxes get filled, cards in progress, card switches, rolls used, keep patterns (fixed classification) against the reference, decision quality by type, think time, changes of mind and undo use. | [StrategyProfile.cs](../YahtzeeSim.Analysis/Profile/StrategyProfile.cs), [KeepPatterns.cs](../YahtzeeSim.Analysis/Grading/KeepPatterns.cs) | UR-19 | ✅ |
+| SW-ANA-06 | Findings shall come only from a fixed, versioned rule table. Each rule has an id, an exact condition, a threshold and a sentence template filled with the counted evidence (cases, opportunities, rate, points lost, examples). Rules that do not reach their threshold are listed as checked. No AI or free-text judgement is produced. | [StrategyRules.cs](../YahtzeeSim.Analysis/Rules/StrategyRules.cs) | UR-19 | ✅ |
+| SW-ANA-07 | `scripts/analyze-strategy.ps1` shall write a self-contained HTML report (index and one page per player, in the app's colours, no scripts or external files), a Markdown file per player and `decisions.csv` to `exports/analysis/` (git-ignored personal data). The same export, seed and simulation count shall give byte-identical output. | [HtmlReport.cs](../YahtzeeSim.Analysis/Reports/HtmlReport.cs), [TextReports.cs](../YahtzeeSim.Analysis/Reports/TextReports.cs), [analyze-strategy.ps1](../scripts/analyze-strategy.ps1) | UR-19 | ✅ |
+| SW-ANA-08 | Analysis tests shall cover the solver (published optimum, closed-form cases, simulation agreement), replay checks, the exact score split, every rule firing and staying quiet, and report determinism; they run in CI. | [YahtzeeSim.Analysis.Tests](../YahtzeeSim.Analysis.Tests), [ci.yml](../.github/workflows/ci.yml) | UR-19 | ✅ |
+
 ## 4. Traceability matrix (UR → SW)
 
 | UR | Software requirements |
@@ -225,6 +242,7 @@ Accounts use the provider's own sign-in; the app never handles or stores a passw
 | UR-16 Leaderboard | LDB-01, LDB-02, LDB-03, LDB-05, LDB-06 |
 | UR-17 Offline games still count | ACC-07, LDB-04 |
 | UR-18 Record gameplay for analysis | LOG-01, LOG-02, LOG-03 |
+| UR-19 Full Sheet strategy analysis | ANA-01 … ANA-08 |
 
 ## 5. Remaining work
 
