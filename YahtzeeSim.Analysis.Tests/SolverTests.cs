@@ -67,7 +67,7 @@ public class SolverTests
     {
         // Each die is kept on 5 or 6 after roll 1 and on 4 or more after roll 2, which averages 14/3.
         var position = new CardPosition(CardPosition.FullMask & ~(1 << 12), 70);
-        Assert.Equal(5 * 14.0 / 3, TestData.Solver.Value(position), 9);
+        Assert.Equal(5 * 14.0 / 3, TestData.Solver.Value(position), 4);
     }
 
     [Fact]

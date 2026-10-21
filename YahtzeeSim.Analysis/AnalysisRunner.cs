@@ -57,11 +57,13 @@ public sealed record PlayerAnalysis(
 public sealed record AnalysisResult(
     IReadOnlyList<PlayerAnalysis> Players,
     IReadOnlyList<SkippedGame> Skipped,
-    SimulationSummary Reference,
-    SimulationSummary Greedy,
-    double CardStartValue,
-    AnalysisOptions Options)
+    ReferenceData ReferenceData,
+    double CardStartValue)
 {
+    public SimulationSummary Reference => ReferenceData.Reference;
+
+    public SimulationSummary Greedy => ReferenceData.Greedy;
+
     public string RulesVersion => StrategyRules.Version;
 
     public int GameCount => Players.Sum(p => p.Games.Count);
@@ -78,7 +80,14 @@ public sealed record AnalysisResult(
 /// </summary>
 public static class AnalysisRunner
 {
-    public static AnalysisResult Run(ExportData data, AnalysisOptions options, Action<string>? log = null, CardSolver? solver = null)
+    /// <param name="solver">Precomputed single-card table (the app loads it from a file); computed or cached when null.</param>
+    /// <param name="referenceData">Precomputed simulations (the app loads them from a file); simulated with the options when null.</param>
+    public static AnalysisResult Run(
+        ExportData data,
+        AnalysisOptions options,
+        Action<string>? log = null,
+        CardSolver? solver = null,
+        ReferenceData? referenceData = null)
     {
         var tables = DiceTables.Shared;
         solver ??= CardSolver.LoadOrCompute(tables, options.SolverCachePath, log);
@@ -136,12 +145,26 @@ public static class AnalysisRunner
         log?.Invoke($"Replayed {games.Count} finished Full Sheet games; skipped {skipped.Count}.");
 
         var graded = new GradedGame[games.Count];
-        Parallel.For(0, games.Count, i => graded[i] = new DecisionGrader(evaluator).Grade(games[i]));
+        if (OperatingSystem.IsBrowser())
+        {
+            // The browser runs on one thread, where Parallel.For cannot wait for its workers.
+            for (int i = 0; i < games.Count; i++)
+            {
+                graded[i] = new DecisionGrader(evaluator).Grade(games[i]);
+            }
+        }
+        else
+        {
+            Parallel.For(0, games.Count, i => graded[i] = new DecisionGrader(evaluator).Grade(games[i]));
+        }
 
-        var simulator = new BotSimulator(evaluator);
-        var reference = simulator.Run(SheetEvaluator.ReferenceScoring, options.Simulations, options.Seed);
-        var greedy = simulator.Run(PlacementScoring.Greedy, options.Simulations, options.Seed + 1);
-        log?.Invoke($"Simulated {options.Simulations} games per strategy: reference {reference.Mean:0.0}, greedy {greedy.Mean:0.0}.");
+        if (referenceData == null)
+        {
+            referenceData = ReferenceData.Simulate(evaluator, options.Simulations, options.Seed);
+            log?.Invoke($"Simulated {options.Simulations} games per strategy: reference {referenceData.Reference.Mean:0.0}, greedy {referenceData.Greedy.Mean:0.0}.");
+        }
+
+        var reference = referenceData.Reference;
 
         var referencePoints = ScoreRules.ScoringCategories.ToDictionary(c => c, c => reference.AverageCategoryPoints[(int)c]);
         var players = graded
@@ -172,7 +195,7 @@ public static class AnalysisRunner
         }).ToList();
 
         skipped = [.. skipped.OrderBy(s => s.Nickname, StringComparer.OrdinalIgnoreCase).ThenBy(s => s.GameId, StringComparer.Ordinal)];
-        return new AnalysisResult(analyses, skipped, reference, greedy, solver.StartValue, options);
+        return new AnalysisResult(analyses, skipped, referenceData, solver.StartValue);
     }
 
     public static string Slugify(string text)

@@ -1,0 +1,61 @@
+@inject StrategyService Strategy
+
+<h3 id="strategy-title">My strategy</h3>
+
+<div class="st-body" aria-busy="@(_report == null ? "true" : "false")">
+    @if (_report == null)
+    {
+        <div class="st-loading" role="status">
+            <span class="st-spinner" aria-hidden="true"></span>
+            <span>@_status</span>
+        </div>
+    }
+    else if (_report.Status == StrategyStatus.Ready)
+    {
+        @if (_report.Skipped > 0)
+        {
+            <p class="st-note">@_report.Skipped @(_report.Skipped == 1 ? "game" : "games") could not be checked and @(_report.Skipped == 1 ? "is" : "are") left out</p>
+        }
+        <div class="st-report">@((MarkupString)_report.Html!)</div>
+    }
+    else if (_report.Status == StrategyStatus.NoGames)
+    {
+        <p class="st-message">Finish a Full Sheet game while signed in to see your strategy report It looks at your last @(_report.Limit > 0 ? _report.Limit : 10) finished Full Sheet games</p>
+    }
+    else if (_report.Status == StrategyStatus.SessionExpired)
+    {
+        <p class="st-message" role="alert">Sign in again to see your strategy report</p>
+    }
+    else
+    {
+        <p class="st-message" role="alert">@(_report.Status == StrategyStatus.Offline ? "Your strategy report needs a connection" : "Your strategy report could not be built")</p>
+        <p class="st-message"><button type="button" class="st-retry" @onclick="LoadAsync">Try again</button></p>
+    }
+</div>
+
+<div class="st-actions">
+    <button type="button" class="st-close" @onclick="() => OnClose.InvokeAsync()">Close</button>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private StrategyReport? _report;
+    private string _status = "Loading your games";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _report = null;
+        _status = "Loading your games";
+        _report = await Strategy.BuildAsync(async status =>
+        {
+            _status = status;
+            StateHasChanged();
+            // Let the browser paint the status before the analysis keeps the thread busy.
+            await Task.Delay(30);
+        });
+    }
+}

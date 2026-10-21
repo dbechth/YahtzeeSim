@@ -39,6 +39,8 @@
 !**/*.ts
 !**/*.sql
 !wrangler.toml
+# Precomputed strategy data shipped with the app (see scripts/analyze-strategy.ps1).
+!YahtzeeSim.Web/wwwroot/analysis/*.bin
 !.dev.vars.example
 
 # Always ignore generated artifacts and local IDE state.

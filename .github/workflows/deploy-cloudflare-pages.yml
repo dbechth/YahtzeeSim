@@ -8,6 +8,8 @@ on:
       - YahtzeeSim.Web/**
       - YahtzeeSim.Engine/**
       - YahtzeeSim.Engine.Tests/**
+      - YahtzeeSim.Analysis/**
+      - YahtzeeSim.Analysis.Tests/**
       - functions/**
       - functions-tests/**
       - migrations/**
@@ -24,6 +26,7 @@ env:
   DOTNET_VERSION: "9.0.x"
   WEB_PROJECT: "YahtzeeSim.Web/YahtzeeSim.Web.csproj"
   TEST_PROJECT: "YahtzeeSim.Engine.Tests/YahtzeeSim.Engine.Tests.csproj"
+  ANALYSIS_TEST_PROJECT: "YahtzeeSim.Analysis.Tests/YahtzeeSim.Analysis.Tests.csproj"
   PUBLISH_DIR: "YahtzeeSim.Web/bin/Release/net9.0/publish/wwwroot"
 
 jobs:
@@ -69,6 +72,9 @@ jobs:
           npm test
       - name: Run engine tests
         run: dotnet test ${{ env.TEST_PROJECT }} -c Release
+
+      - name: Run strategy analysis tests
+        run: dotnet test ${{ env.ANALYSIS_TEST_PROJECT }} -c Release
 
       - name: Publish Blazor WebAssembly
         run: dotnet publish ${{ env.WEB_PROJECT }} -c Release

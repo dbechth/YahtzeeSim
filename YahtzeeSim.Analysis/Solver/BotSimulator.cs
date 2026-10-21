@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using YahtzeeSim.Analysis.Data;
 using YahtzeeSim.Engine;
 
@@ -19,12 +20,16 @@ public sealed record SimulationSummary(
     double[] AverageCategoryPoints,
     double UpperBonusRate)
 {
+    [JsonIgnore]
     public double Mean => Average(SortedTotals);
 
+    [JsonIgnore]
     public double StandardDeviation => Deviation(SortedTotals);
 
+    [JsonIgnore]
     public double LuckFreeMean => Average(SortedLuckFree);
 
+    [JsonIgnore]
     public double LuckFreeStandardDeviation => Deviation(SortedLuckFree);
 
     /// <summary>Share of values strictly below <paramref name="value"/>, plus half of the ties.</summary>

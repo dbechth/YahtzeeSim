@@ -151,6 +151,12 @@ After exporting, build a rule-based strategy report from the finished Full Sheet
 
 Each game is replayed from its actions and must reproduce the submitted total. Every keep, early stop and box choice is graded against a reference strategy built on an exact single-card solver (245.87 points per card), and each total is split into baseline + Full Sheet choice + dice luck − decision cost. Findings come only from the fixed rule table in `YahtzeeSim.Analysis/Rules/StrategyRules.cs`; each shows its condition, threshold and evidence. The output (`index.html`, one HTML and Markdown page per player, `decisions.csv`) is personal data and stays in the git-ignored `exports/` folder. The same export and seed always give the same report.
 
+Players see the same report for their own last 10 finished Full Sheet games in the app under **Account → My strategy**. The app fetches the games from `GET /api/strategy` and runs the analysis in the browser, using the precomputed solver table and reference simulations in `YahtzeeSim.Web/wwwroot/analysis/`. If the scoring rules, the reference strategy or the simulation change, regenerate those files (the analysis tests fail until you do):
+
+```powershell
+dotnet run --project YahtzeeSim.Analysis.Cli -c Release -- --write-app-assets YahtzeeSim.Web/wwwroot/analysis
+```
+
 ### Adding Facebook Later
 
 Add a provider entry in `functions/_lib/providers.ts` (endpoints, scopes, claim checks), add its client id and secret as Pages secrets, and add a button in `YahtzeeSim.Web/Components/SignInGate.razor`.

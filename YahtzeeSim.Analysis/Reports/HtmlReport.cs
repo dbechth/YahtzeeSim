@@ -62,16 +62,7 @@ public static class HtmlReport
         h.Append("</div></section>");
 
         Method(h, result);
-
-        h.Append("<section class=\"panel\"><h2>Rules</h2><p class=\"muted\">Every finding comes from one of these fixed rules. A rule appears in a player's findings only when its threshold is met.</p>");
-        h.Append("<table><thead><tr><th>Rule</th><th>Condition</th><th>Threshold</th></tr></thead><tbody>");
-        foreach (var rule in StrategyRules.All)
-        {
-            h.Append("<tr><td><strong>").Append(E(rule.Title)).Append("</strong><br><code>").Append(E(rule.Id)).Append("</code></td><td>")
-                .Append(E(rule.Condition)).Append("</td><td>").Append(E(rule.Threshold)).Append("</td></tr>");
-        }
-
-        h.Append("</tbody></table></section>");
+        RulesTable(h);
 
         if (result.Skipped.Count > 0)
         {
@@ -92,19 +83,48 @@ public static class HtmlReport
     public static string Player(AnalysisResult result, PlayerAnalysis p)
     {
         var h = new StringBuilder();
-        var reference = result.Reference;
         Start(h, p.Nickname + " · Full Sheet strategy");
         h.Append("<header class=\"hero\"><div class=\"wrap\"><p class=\"eyebrow\"><a href=\"index.html\">← All players</a></p><h1>")
-            .Append(E(p.Nickname)).Append("</h1><p class=\"lede\">").Append(I(p.Games.Count)).Append(" finished Full Sheet game")
-            .Append(p.Games.Count == 1 ? "" : "s").Append(", ").Append(Date(p.Games[0].Game.PlayedAt));
+            .Append(E(p.Nickname)).Append("</h1><p class=\"lede\">");
+        Summary(h, result, p);
+        h.Append("</p></div></header><main class=\"wrap\">");
+        PlayerSections(h, result, p);
+        End(h, result);
+        return h.ToString();
+    }
+
+    /// <summary>
+    /// The player report as a fragment for the app: no page header or links, styles scoped under <c>.sr</c>,
+    /// followed by how the report works and the rule table.
+    /// </summary>
+    public static string PlayerFragment(AnalysisResult result, PlayerAnalysis p)
+    {
+        var h = new StringBuilder("<style>").Append(Css).Append("</style><div class=\"sr sr-embedded\"><p class=\"intro\">");
+        Summary(h, result, p);
+        h.Append("</p>");
+        PlayerSections(h, result, p);
+        Method(h, result);
+        RulesTable(h);
+        h.Append("<footer>Rules v").Append(E(result.RulesVersion)).Append(" · reference from ").Append(I(result.ReferenceData.Simulations))
+            .Append(" simulated games per strategy, seed ").Append(I(result.ReferenceData.Seed)).Append("</footer></div>");
+        return h.ToString();
+    }
+
+    private static void Summary(StringBuilder h, AnalysisResult result, PlayerAnalysis p)
+    {
+        h.Append(I(p.Games.Count)).Append(" finished Full Sheet game").Append(p.Games.Count == 1 ? "" : "s").Append(", ").Append(Date(p.Games[0].Game.PlayedAt));
         if (p.Games.Count > 1 && Date(p.Games[^1].Game.PlayedAt) != Date(p.Games[0].Game.PlayedAt))
         {
             h.Append(" to ").Append(Date(p.Games[^1].Game.PlayedAt));
         }
 
-        h.Append(". Compared with the reference strategy (").Append(F0(reference.Mean)).Append(" average over ")
-            .Append(I(reference.Games)).Append(" simulated games).</p></div></header><main class=\"wrap\">");
+        h.Append(". Compared with the reference strategy (").Append(F0(result.Reference.Mean)).Append(" average over ")
+            .Append(I(result.Reference.Games)).Append(" simulated games).");
+    }
 
+    private static void PlayerSections(StringBuilder h, AnalysisResult result, PlayerAnalysis p)
+    {
+        var reference = result.Reference;
         h.Append("<section class=\"kpis\">");
         Kpi(h, "Average score", F0(p.AverageTotal), $"best {I(p.Games.Max(g => g.Game.Total))} · worst {I(p.Games.Min(g => g.Game.Total))}");
         Kpi(h, "Luck-free score", F0(p.AverageLuckFree), $"reference {F0(reference.LuckFreeMean)}");
@@ -122,8 +142,19 @@ public static class HtmlReport
         FillOrder(h, p.Profile);
         Keeps(h, p.Profile);
         Style(h, p);
-        End(h, result);
-        return h.ToString();
+    }
+
+    private static void RulesTable(StringBuilder h)
+    {
+        h.Append("<section class=\"panel\"><h2>Rules</h2><p class=\"muted\">Every finding comes from one of these fixed rules. A rule appears in the findings only when its threshold is met.</p>");
+        h.Append("<div class=\"scroll\"><table><thead><tr><th>Rule</th><th>Condition</th><th>Threshold</th></tr></thead><tbody>");
+        foreach (var rule in StrategyRules.All)
+        {
+            h.Append("<tr><td><strong>").Append(E(rule.Title)).Append("</strong><br><code>").Append(E(rule.Id)).Append("</code></td><td>")
+                .Append(E(rule.Condition)).Append("</td><td>").Append(E(rule.Threshold)).Append("</td></tr>");
+        }
+
+        h.Append("</tbody></table></div></section>");
     }
 
     private static void Breakdown(StringBuilder h, AnalysisResult result, PlayerAnalysis p)
@@ -284,7 +315,8 @@ public static class HtmlReport
     private static void DecisionRow(StringBuilder h, GradedDecision d)
     {
         h.Append("<tr><td class=\"when\">").Append(GameTag(d)).Append("Turn ").Append(I(d.Turn)).Append(", roll ").Append(I(d.RollNumber)).Append("</td><td>")
-            .Append(Dice(d.Dice)).Append("</td><td>").Append(E(Kind(d.Kind))).Append("</td><td>").Append(E(d.Chosen)).Append("</td><td><strong>")
+            .Append(Dice(d.Dice)).Append("</td><td class=\"kind\">").Append(E(Kind(d.Kind))).Append("</td><td class=\"you\"><span class=\"lab\">You: </span>")
+            .Append(E(d.Chosen)).Append("</td><td class=\"ref\"><span class=\"lab\">Reference: </span><strong>")
             .Append(E(d.Best)).Append("</strong></td>").Append(Num(F1(d.Cost), "neg")).Append("</tr>");
 
         static string GameTag(GradedDecision d) => "<code>" + E(Short(d.GameId)) + "</code> ";
@@ -418,7 +450,7 @@ public static class HtmlReport
         h.Append("<li><strong>Grading.</strong> For every keep, early stop and box choice, the cost is the expected points of the reference choice minus the expected points of the player's choice. Matching the reference costs 0.</li>");
         h.Append("<li><strong>Luck.</strong> After each roll, luck is the value of the dice that came up minus the value expected before rolling. Luck averages zero, so the <em>luck-free score</em> (total minus luck) compares skill without the dice.</li>");
         h.Append("<li><strong>Rules.</strong> Findings come only from the fixed rule table below. Each states its condition, threshold and evidence. No other judgement is added.</li></ol>");
-        h.Append("<table><thead><tr><th>Simulated strategy (").Append(I(r.Games)).Append(" games each, seeded)</th><th class=\"num\">Average</th><th class=\"num\">Spread (SD)</th><th class=\"num\">10th–90th percentile</th><th class=\"num\">Luck-free average</th><th class=\"num\">Upper bonus</th></tr></thead><tbody>");
+        h.Append("<div class=\"scroll\"><table><thead><tr><th>Simulated strategy (").Append(I(r.Games)).Append(" games each, seeded)</th><th class=\"num\">Average</th><th class=\"num\">Spread (SD)</th><th class=\"num\">10th–90th percentile</th><th class=\"num\">Luck-free average</th><th class=\"num\">Upper bonus</th></tr></thead><tbody>");
         foreach (var s in new[] { r, g })
         {
             h.Append("<tr><td>").Append(E(s.Strategy)).Append("</td>").Append(Num(F1(s.Mean))).Append(Num(F1(s.StandardDeviation)))
@@ -427,7 +459,7 @@ public static class HtmlReport
         }
 
         h.Append("</tbody></table><p class=\"muted small\">Greedy always takes the most points now and keeps dice for that. Seed ")
-            .Append(I(result.Options.Seed)).Append(". The same export and seed always give the same report.</p></section>");
+            .Append(I(result.ReferenceData.Seed)).Append(". The same games and seed always give the same report.</p></div></section>");
     }
 
     private static string Dice(string dice)
@@ -489,84 +521,91 @@ public static class HtmlReport
     private static void Start(StringBuilder h, string title)
     {
         h.Append("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-        h.Append("<meta name=\"robots\" content=\"noindex\"><title>").Append(E(title)).Append("</title><style>").Append(Css).Append("</style></head><body>");
+        h.Append("<meta name=\"robots\" content=\"noindex\"><title>").Append(E(title)).Append("</title><style>body{margin:0;background:#f1efe6}")
+            .Append(Css).Append("</style></head><body><div class=\"sr\">");
     }
 
     private static void End(StringBuilder h, AnalysisResult result)
     {
         h.Append("</main><footer class=\"wrap\">Generated by scripts/analyze-strategy.ps1 from exports/ · rules v").Append(E(result.RulesVersion))
-            .Append(" · seed ").Append(I(result.Options.Seed)).Append(" · ").Append(I(result.Options.Simulations))
-            .Append(" simulated games per strategy · personal gameplay data, do not share or commit.</footer></body></html>\n");
+            .Append(" · seed ").Append(I(result.ReferenceData.Seed)).Append(" · ").Append(I(result.ReferenceData.Simulations))
+            .Append(" simulated games per strategy · personal gameplay data, do not share or commit.</footer></div></body></html>\n");
     }
 
+    // Every rule is scoped under .sr so the same markup can be embedded in the app without touching its styles.
     private const string Css = """
-:root{--paper:#f8f6ee;--shell:#f1efe6;--line:#dedfd5;--ink:#1f2933;--forest:#17352c;--forest-dark:#102a25;--muted:#56645c;--accent:#1f6f5f;--mint:#b8efc7;--mint-deep:#31966a;--gold:#f4c66a;--bad:#b4483c;--die:#fbf8ee}
-*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--shell);color:var(--ink);font:15px/1.5 "Trebuchet MS","Segoe UI",sans-serif}
-.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
-.hero{background:linear-gradient(135deg,var(--forest-dark),var(--forest) 60%,var(--accent));color:#fff;padding:34px 0 30px;margin-bottom:24px}
-.hero h1{font-family:Georgia,"Times New Roman",serif;font-size:2.3rem;margin:4px 0 6px;color:var(--gold)}
-.eyebrow{margin:0;text-transform:uppercase;letter-spacing:.12em;font-size:.75rem;color:var(--mint)}
-.eyebrow a{color:var(--mint);text-decoration:none}.eyebrow a:hover{text-decoration:underline}
-.lede{margin:0;max-width:760px;color:#e7efe9}
-h2{font-family:Georgia,"Times New Roman",serif;color:var(--forest);margin:0 0 10px;font-size:1.35rem}
-h3{margin:0 0 6px;font-size:1.02rem;color:var(--forest)}
-section{margin-bottom:22px}
-.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 1px 2px rgba(16,42,37,.06)}
-.muted{color:var(--muted)}.small{font-size:.85rem}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
-.kpis.inner{margin-bottom:14px}
-.kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
-.kpi span{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.kpi strong{font-size:1.55rem;color:var(--forest);font-family:Georgia,serif}
-.kpi small{color:var(--muted);font-size:.8rem}
-.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
-.player-card{display:flex;flex-direction:column;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;color:inherit;text-decoration:none;transition:transform .12s,box-shadow .12s}
-.player-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(16,42,37,.12)}
-.player-card h3{font-family:Georgia,serif;font-size:1.3rem;margin:0}
-.player-card .go{margin-top:auto;color:var(--accent);font-weight:bold}
-.mini{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:4px 0}
-.mini dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.mini dd{margin:0;font-size:1.15rem;font-weight:bold;color:var(--forest)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.chip{background:var(--mint);color:var(--forest-dark);border-radius:999px;padding:2px 10px;font-size:.8rem}
-.chip.warn{background:#f8dcd6;color:#7a2a20}
-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.92rem}
-th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:2px solid var(--line);padding:6px 8px}
-td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:middle}
-tbody tr:nth-child(even) td{background:rgba(241,239,230,.6)}
-.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.pos{color:var(--mint-deep);font-weight:bold}.neg{color:var(--bad)}
-code{font-size:.8em;background:rgba(23,53,44,.07);padding:1px 5px;border-radius:4px;color:var(--muted)}
-.finding{border-left:4px solid var(--gold);background:#fff;border-radius:10px;padding:12px 16px;margin:12px 0}
-.finding header{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.finding p{margin:4px 0}
-.rule-def{font-size:.82rem;color:var(--muted)}
-details{margin-top:10px}summary{cursor:pointer;color:var(--accent);font-weight:bold}
-.dice{display:inline-flex;gap:3px}
-.die{width:22px;height:22px}.die rect{fill:var(--die);stroke:var(--forest);stroke-width:1.4}.die circle{fill:var(--forest)}
-.when{white-space:nowrap;color:var(--muted);font-size:.85rem}
-.bar{position:relative;height:20px;background:rgba(23,53,44,.06);border-radius:5px;min-width:120px;overflow:hidden}
-.bar span{position:absolute;inset:0 auto 0 0;border-radius:5px}
-.bar b{position:relative;font-size:.78rem;padding-left:6px;line-height:20px;color:var(--ink)}
-.bar i{position:absolute;top:0;bottom:0;width:2px;background:var(--forest)}
-.bar.you span{background:var(--mint-deep);opacity:.75}.bar.ref span{background:var(--gold)}.bar.neg span{background:#e7a69c}
-.pair{display:flex;flex-direction:column;gap:3px}
-.legend{font-size:.82rem;color:var(--muted)}.key{display:inline-block;width:12px;height:12px;border-radius:3px;margin:0 4px 0 12px;vertical-align:-2px}
-.key.you{background:var(--mint-deep);opacity:.75}.key.ref{background:var(--gold)}
-.heat td.num,.heat th.num{text-align:center;min-width:52px}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
-.falls{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin:10px 0}
-.fall{margin:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;max-width:560px}
-.fall figcaption{font-weight:bold;color:var(--forest);padding:2px 6px}
-.fall svg{width:100%;height:auto}
-.fall .grid{stroke:var(--line);stroke-width:1}.fall .axis{font-size:10px;fill:var(--muted)}
-.fall .val{font-size:11px;font-weight:bold;fill:var(--ink)}.fall .lbl{font-size:10.5px;fill:var(--muted)}
-.fall .base{fill:#9fb3aa}.fall .gain{fill:var(--mint-deep)}.fall .luck{fill:var(--gold)}.fall .loss{fill:var(--bad)}.fall .total{fill:var(--forest)}
-.method li{margin-bottom:6px}
-.scroll{overflow-x:auto}.nowrap{white-space:nowrap}
-footer{color:var(--muted);font-size:.8rem;padding:10px 20px 40px}
-@media (max-width:640px){.hero h1{font-size:1.8rem}.panel{padding:14px}td,th{padding:5px}.bar{min-width:80px}}
-@media print{body{background:#fff}.hero{background:var(--forest);-webkit-print-color-adjust:exact;print-color-adjust:exact}.panel,.kpi{box-shadow:none}}
+.sr{--paper:#f8f6ee;--shell:#f1efe6;--line:#dedfd5;--ink:#1f2933;--forest:#17352c;--forest-dark:#102a25;--muted:#56645c;--accent:#1f6f5f;--mint:#b8efc7;--mint-deep:#31966a;--gold:#f4c66a;--bad:#b4483c;--die:#fbf8ee;color:var(--ink);font:15px/1.5 "Trebuchet MS","Segoe UI",sans-serif;-webkit-text-size-adjust:100%;text-align:left}
+.sr *{box-sizing:border-box}
+.sr .wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.sr .hero{background:linear-gradient(135deg,var(--forest-dark),var(--forest) 60%,var(--accent));color:#fff;padding:34px 0 30px;margin-bottom:24px}
+.sr .hero h1{font-family:Georgia,"Times New Roman",serif;font-size:2.3rem;margin:4px 0 6px;color:var(--gold)}
+.sr .eyebrow{margin:0;text-transform:uppercase;letter-spacing:.12em;font-size:.75rem;color:var(--mint)}
+.sr .eyebrow a{color:var(--mint);text-decoration:none}.sr .eyebrow a:hover{text-decoration:underline}
+.sr .lede{margin:0;max-width:760px;color:#e7efe9}
+.sr .intro{margin:0 0 14px;color:var(--muted)}
+.sr h2{font-family:Georgia,"Times New Roman",serif;color:var(--forest);margin:0 0 10px;font-size:1.35rem}
+.sr h3{margin:0 0 6px;font-size:1.02rem;color:var(--forest)}
+.sr section{margin-bottom:22px}
+.sr .panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 1px 2px rgba(16,42,37,.06);overflow-x:auto}
+.sr .muted{color:var(--muted)}.sr .small{font-size:.85rem}
+.sr .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.sr .kpis.inner{margin-bottom:14px}
+.sr .kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.sr .kpi span{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.sr .kpi strong{font-size:1.55rem;color:var(--forest);font-family:Georgia,serif}
+.sr .kpi small{color:var(--muted);font-size:.8rem}
+.sr .players{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.sr .player-card{display:flex;flex-direction:column;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;color:inherit;text-decoration:none;transition:transform .12s,box-shadow .12s}
+.sr .player-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(16,42,37,.12)}
+.sr .player-card h3{font-family:Georgia,serif;font-size:1.3rem;margin:0}
+.sr .player-card .go{margin-top:auto;color:var(--accent);font-weight:bold}
+.sr .mini{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:4px 0}
+.sr .mini dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.sr .mini dd{margin:0;font-size:1.15rem;font-weight:bold;color:var(--forest)}
+.sr .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.sr .chip{background:var(--mint);color:var(--forest-dark);border-radius:999px;padding:2px 10px;font-size:.8rem}
+.sr .chip.warn{background:#f8dcd6;color:#7a2a20}
+.sr table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.92rem}
+.sr th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:2px solid var(--line);padding:6px 8px}
+.sr td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:middle}
+.sr tbody tr:nth-child(even) td{background:rgba(241,239,230,.6)}
+.sr .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sr .pos{color:var(--mint-deep);font-weight:bold}.sr .neg{color:var(--bad)}
+.sr code{font-size:.8em;background:rgba(23,53,44,.07);padding:1px 5px;border-radius:4px;color:var(--muted)}
+.sr .finding{border-left:4px solid var(--gold);background:#fff;border-radius:10px;padding:12px 16px;margin:12px 0}
+.sr .finding header{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sr .finding p{margin:4px 0}
+.sr .rule-def{font-size:.82rem;color:var(--muted)}
+.sr details{margin-top:10px}.sr summary{cursor:pointer;color:var(--accent);font-weight:bold}
+.sr .dice{display:inline-flex;gap:3px}
+.sr .die{width:22px;height:22px}.sr .die rect{fill:var(--die);stroke:var(--forest);stroke-width:1.4}.sr .die circle{fill:var(--forest)}
+.sr .when{white-space:nowrap;color:var(--muted);font-size:.85rem}
+.sr .lab{display:none}
+.sr .bar{position:relative;height:20px;background:rgba(23,53,44,.06);border-radius:5px;min-width:120px;overflow:hidden}
+.sr .bar span{position:absolute;inset:0 auto 0 0;border-radius:5px}
+.sr .bar b{position:relative;font-size:.78rem;padding-left:6px;line-height:20px;color:var(--ink)}
+.sr .bar i{position:absolute;top:0;bottom:0;width:2px;background:var(--forest)}
+.sr .bar.you span{background:var(--mint-deep);opacity:.75}.sr .bar.ref span{background:var(--gold)}.sr .bar.neg span{background:#e7a69c}
+.sr .pair{display:flex;flex-direction:column;gap:3px}
+.sr .legend{font-size:.82rem;color:var(--muted)}.sr .key{display:inline-block;width:12px;height:12px;border-radius:3px;margin:0 4px 0 12px;vertical-align:-2px}
+.sr .key.you{background:var(--mint-deep);opacity:.75}.sr .key.ref{background:var(--gold)}
+.sr .heat td.num,.sr .heat th.num{text-align:center;min-width:52px}
+.sr .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:18px}
+.sr .falls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px;margin:10px 0}
+.sr .fall{margin:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;max-width:560px}
+.sr .fall figcaption{font-weight:bold;color:var(--forest);padding:2px 6px}
+.sr .fall svg{width:100%;height:auto}
+.sr .fall .grid{stroke:var(--line);stroke-width:1}.sr .fall .axis{font-size:10px;fill:var(--muted)}
+.sr .fall .val{font-size:11px;font-weight:bold;fill:var(--ink)}.sr .fall .lbl{font-size:10.5px;fill:var(--muted)}
+.sr .fall .base{fill:#9fb3aa}.sr .fall .gain{fill:var(--mint-deep)}.sr .fall .luck{fill:var(--gold)}.sr .fall .loss{fill:var(--bad)}.sr .fall .total{fill:var(--forest)}
+.sr .method li{margin-bottom:6px}
+.sr .scroll{overflow-x:auto}.sr .nowrap{white-space:nowrap}
+.sr footer{color:var(--muted);font-size:.8rem;padding:10px 20px 40px}
+.sr-embedded footer{padding:4px 0 0}
+@media (max-width:640px){.sr .hero h1{font-size:1.8rem}.sr .panel{padding:14px}.sr td,.sr th{padding:5px}.sr .bar{min-width:80px}.sr .kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.sr table.examples,.sr table.examples tbody{display:block}.sr table.examples thead{display:none}.sr table.examples tr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.sr table.examples td{border:0;padding:0;background:none!important}.sr table.examples td.you,.sr table.examples td.ref{flex-basis:100%}
+.sr table.examples td.kind{color:var(--muted);font-size:.85rem}.sr table.examples td.num{margin-left:auto}.sr .lab{display:inline;color:var(--muted)}}
+@media print{.sr .hero{background:var(--forest);-webkit-print-color-adjust:exact;print-color-adjust:exact}.sr .panel,.sr .kpi{box-shadow:none}}
 """;
 }

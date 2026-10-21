@@ -364,6 +364,15 @@
     </div>
 }
 
+@if (_showStrategy)
+{
+    <div class="overlay" @onkeydown="OnStrategyKeyDown">
+        <div class="modal strategy-modal" role="dialog" aria-modal="true" aria-labelledby="strategy-title" tabindex="-1" @ref="_dialogRef">
+            <StrategyView OnClose="CloseStrategy" />
+        </div>
+    </div>
+}
+
 @if (_showAccount)
 {
     <div class="overlay" @onkeydown="OnAccountKeyDown">
@@ -400,6 +409,7 @@
             @if (!_editingNickname)
             {
                 <div class="modal-actions">
+                    <button type="button" @onclick="OpenStrategy">My strategy</button>
                     <button type="button" @onclick="StartNicknameEdit">Change nickname</button>
                     <button type="button" @onclick="SignOutAsync">Sign out</button>
                     <button type="button" class="secondary" @onclick="CloseAccount">Close</button>
@@ -444,6 +454,7 @@
     private string _colorPickerTitle = "Pick Pen Color";
     private bool _showResumePrompt;
     private bool _showLeaderboard;
+    private bool _showStrategy;
     private bool _showAccount;
     private bool _editingNickname;
     private bool _focusNicknameInput;
@@ -476,6 +487,7 @@
         : _showModePicker ? "mode"
         : _confirm != null ? "confirm"
         : _showLeaderboard ? "leaderboard"
+        : _showStrategy ? "strategy"
         : _showAccount ? "account"
         : _showResumePrompt ? "resume"
         : null;
@@ -491,6 +503,22 @@
         if (e.Key == "Escape")
         {
             CloseLeaderboard();
+        }
+    }
+
+    private void OpenStrategy()
+    {
+        CloseAccount();
+        _showStrategy = true;
+    }
+
+    private void CloseStrategy() => _showStrategy = false;
+
+    private void OnStrategyKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            CloseStrategy();
         }
     }
 

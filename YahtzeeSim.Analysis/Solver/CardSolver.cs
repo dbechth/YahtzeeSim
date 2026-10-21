@@ -42,7 +42,9 @@ public sealed class CardSolver
     public const int UpperCap = 63;
     private const int UpperStates = UpperCap + 1;
     private const int MaskCount = 1 << DiceTables.CategoryCount;
-    private const string CacheMagic = "YSCARDV1";
+    private const int AssetVersion = 1;
+
+    private static readonly byte[] AssetMagic = "YSCV"u8.ToArray();
 
     private readonly double[] _values;
 
@@ -114,17 +116,32 @@ public sealed class CardSolver
                 _ => { });
         }
 
+        // Stored as single precision (about 0.00002 points), the same as the table shipped with the app,
+        // so the script and the app give identical results.
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = (float)values[i];
+        }
+
         return new CardSolver(values);
     }
 
     /// <summary>Loads the table from <paramref name="cachePath"/> when it matches the current rules, otherwise computes and saves it.</summary>
     public static CardSolver LoadOrCompute(DiceTables tables, string? cachePath, Action<string>? log = null)
     {
-        int rulesHash = RulesHash(tables);
-        if (cachePath != null && TryLoad(cachePath, rulesHash) is { } cached)
+        if (cachePath != null && File.Exists(cachePath))
         {
-            log?.Invoke($"Card values loaded from {cachePath}");
-            return cached;
+            try
+            {
+                using var stream = File.OpenRead(cachePath);
+                var cached = ReadAsset(stream, tables);
+                log?.Invoke($"Card values loaded from {cachePath}");
+                return cached;
+            }
+            catch (InvalidDataException)
+            {
+                // Built under other rules or damaged: compute again below.
+            }
         }
 
         var started = System.Diagnostics.Stopwatch.StartNew();
@@ -132,62 +149,71 @@ public sealed class CardSolver
         log?.Invoke($"Card values computed in {started.Elapsed.TotalSeconds:0.0} s");
         if (cachePath != null)
         {
-            solver.Save(cachePath, rulesHash);
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(cachePath))!);
+            using var stream = File.Create(cachePath);
+            solver.WriteAsset(stream, tables);
         }
 
         return solver;
     }
 
-    private void Save(string path, int rulesHash)
+    /// <summary>
+    /// Writes the table in the compact form shipped with the app: a header (magic, version, rules fingerprint, count)
+    /// then one little-endian float per reachable position, in mask order and ascending upper sum.
+    /// </summary>
+    public void WriteAsset(Stream stream, DiceTables tables)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        using var writer = new BinaryWriter(File.Create(path));
-        writer.Write(CacheMagic);
-        writer.Write(rulesHash);
-        writer.Write(_values.Length);
-        foreach (double v in _values)
+        var reachable = ReachableUpperSums();
+        int count = ReachableCount(reachable);
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.ASCII, leaveOpen: true);
+        writer.Write(AssetMagic);
+        writer.Write(AssetVersion);
+        writer.Write(RulesHash(tables));
+        writer.Write(count);
+        for (int mask = 0; mask < MaskCount; mask++)
         {
-            writer.Write(v);
+            foreach (int upper in reachable[mask & 0x3F])
+            {
+                writer.Write((float)_values[Index(mask, upper)]);
+            }
         }
     }
 
-    private static CardSolver? TryLoad(string path, int rulesHash)
+    /// <summary>Reads a table written by <see cref="WriteAsset"/>. Throws <see cref="InvalidDataException"/> if it does not match the current rules.</summary>
+    public static CardSolver ReadAsset(Stream stream, DiceTables tables)
     {
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
+        var reachable = ReachableUpperSums();
+        int expectedCount = ReachableCount(reachable);
         try
         {
-            using var reader = new BinaryReader(File.OpenRead(path));
-            if (reader.ReadString() != CacheMagic || reader.ReadInt32() != rulesHash)
+            using var reader = new BinaryReader(stream, System.Text.Encoding.ASCII, leaveOpen: true);
+            if (!reader.ReadBytes(AssetMagic.Length).AsSpan().SequenceEqual(AssetMagic)
+                || reader.ReadInt32() != AssetVersion
+                || reader.ReadInt32() != RulesHash(tables)
+                || reader.ReadInt32() != expectedCount)
             {
-                return null;
+                throw new InvalidDataException("The card value table was built for other rules or is damaged.");
             }
 
-            int length = reader.ReadInt32();
-            if (length != MaskCount * UpperStates)
+            var values = new double[MaskCount * UpperStates];
+            for (int mask = 0; mask < MaskCount; mask++)
             {
-                return null;
-            }
-
-            var values = new double[length];
-            for (int i = 0; i < length; i++)
-            {
-                values[i] = reader.ReadDouble();
+                foreach (int upper in reachable[mask & 0x3F])
+                {
+                    values[Index(mask, upper)] = reader.ReadSingle();
+                }
             }
 
             return new CardSolver(values);
         }
-        catch (Exception ex) when (ex is IOException or EndOfStreamException)
+        catch (EndOfStreamException ex)
         {
-            return null;
+            throw new InvalidDataException("The card value table is truncated.", ex);
         }
     }
 
-    /// <summary>Fingerprint of the scoring table, so a cache built under different rules is never reused.</summary>
-    private static int RulesHash(DiceTables tables)
+    /// <summary>Fingerprint of the scoring rules, so values built under different rules are never reused.</summary>
+    public static int RulesHash(DiceTables tables)
     {
         unchecked
         {
@@ -200,6 +226,17 @@ public sealed class CardSolver
             hash = hash * 31 + GameCardState.UpperBonusThreshold;
             return hash * 31 + GameCardState.UpperBonusValue;
         }
+    }
+
+    private static int ReachableCount(List<int>[] reachable)
+    {
+        int count = 0;
+        for (int mask = 0; mask < MaskCount; mask++)
+        {
+            count += reachable[mask & 0x3F].Count;
+        }
+
+        return count;
     }
 
     private static int Index(int mask, int upperSum) => mask * UpperStates + Math.Min(upperSum, UpperCap);

@@ -739,6 +739,23 @@ button:disabled {
     outline: none;
 }
 
+.strategy-modal {
+    width: min(68rem, 100%);
+    background: #f1efe6;
+    padding-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .overlay:has(.strategy-modal) {
+        padding: 0.4rem;
+    }
+
+    .strategy-modal {
+        max-height: calc(100dvh - 0.8rem);
+        padding: 0.7rem 0.7rem 0;
+    }
+}
+
 .modal h3 {
     margin: 0 0 0.65rem;
     text-align: center;
