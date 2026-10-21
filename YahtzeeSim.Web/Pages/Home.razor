@@ -75,9 +75,9 @@
                 @for (int gameIndex = 0; gameIndex < YahtzeeGameEngine.GameCount; gameIndex++)
                 {
                     var card = _engine.Cards[gameIndex];
-                    <div>Game @(gameIndex + 1): Upper @(card.UpperSubtotal ?? 0), Lower @(card.LowerSubtotal ?? 0), Bonus @(card.UpperBonus ?? 0), Total @(card.GameTotal ?? 0)</div>
+                    <div>Game @(gameIndex + 1) Upper @(card.UpperSubtotal ?? 0) Lower @(card.LowerSubtotal ?? 0) Bonus @(card.UpperBonus ?? 0) Total @(card.GameTotal ?? 0)</div>
                 }
-                <div class="series-total">Series total: @(_engine.Cards.Sum(c => c.GameTotal ?? 0))</div>
+                <div class="series-total">Series total @(_engine.Cards.Sum(c => c.GameTotal ?? 0))</div>
             </div>
         </section>
     }
@@ -128,10 +128,10 @@
    <div class="card-panel">
     <section class="score-wrap sheet-card">
         <div class="sheet-head">
-            <h2 class="sheet-heading">Scorecard<span> &middot; @(_engine.Mode == GameMode.Single ? "one game" : "six games")</span></h2>
+            <h2 class="sheet-heading">Scorecard<span> @(_engine.Mode == GameMode.Single ? "one game" : "six games")</span></h2>
         </div>
         <div class="score-scroll">
-        <table class="score-grid" role="table" aria-label="Score card for six games. Choose one open cell to score this turn.">
+        <table class="score-grid" role="table" aria-label="Score card for six games Choose one open cell to score this turn">
             <colgroup>
                 <col class="col-category" />
                 <col class="col-prob" />
@@ -279,8 +279,8 @@
 {
     <div class="overlay">
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="resume-title" tabindex="-1" @ref="_dialogRef">
-            <h3 id="resume-title">Resume your game?</h3>
-            <p class="modal-text">A game in progress was saved on this device.</p>
+            <h3 id="resume-title">            Resume your game</h3>
+                        <p class="modal-text">A game in progress was saved on this device</p>
             <div class="modal-actions">
                 <button type="button" @onclick="ResumeSavedGameAsync">Resume</button>
                 <button type="button" class="secondary" @onclick="DiscardSavedGameAsync">Discard</button>
@@ -329,7 +329,7 @@
                      @onpointerdown="WheelPointer"
                      @onpointermove="WheelPointer"
                      @onkeydown="WheelKeyDown"
-                     aria-label="Colour wheel, @PickedHex. Left and right arrows change the colour, up and down change the strength.">
+                     aria-label="Colour wheel @PickedHex Left and right arrows change the colour up and down change the strength">
                     <div class="wheel-marker" style="left:@(MarkerLeft());top:@(MarkerTop());background:@PickedHex"></div>
                 </div>
             </div>
@@ -369,7 +369,7 @@
     <div class="overlay" @onkeydown="OnAccountKeyDown">
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="account-title" tabindex="-1" @ref="_dialogRef">
             <h3 id="account-title">Account</h3>
-            <p class="modal-text">Signed in as <strong>@Account.Nickname</strong>@(Account.IsOffline ? " (offline)" : null)</p>
+            <p class="modal-text">Signed in as <strong>@Account.Nickname</strong>@(Account.IsOffline ? " offline" : null)</p>
             @if (_editingNickname)
             {
                 <form class="nick-form" @onsubmit="SaveNicknameAsync">
@@ -377,7 +377,7 @@
                     <input id="nick-edit" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false"
                            aria-describedby="nick-edit-help nick-edit-error" aria-invalid="@(_nicknameError != null ? "true" : "false")"
                            @bind="_nicknameInput" @bind:event="oninput" @onkeydown="OnNicknameKeyDown" @ref="_nicknameRef" />
-                    <p id="nick-edit-help" class="nick-help">3 to 16 letters, numbers, spaces, _ or -. It shows on the leaderboard next to all your scores.</p>
+                    <p id="nick-edit-help" class="nick-help">3 to 16 letters numbers spaces _ or - It shows on the leaderboard next to all your scores</p>
                     <p id="nick-edit-error" class="nick-error" role="alert">@_nicknameError</p>
                     <div class="modal-actions">
                         <button type="submit" disabled="@_nicknameSaving">Save</button>
@@ -394,7 +394,7 @@
             }
             @if (_pendingScores > 0)
             {
-                <p class="modal-text">@_pendingScores finished @(_pendingScores == 1 ? "game is" : "games are") waiting to upload. @(_pendingScores == 1 ? "It" : "They") will upload when you sign in as @Account.Nickname again with a connection.</p>
+                <p class="modal-text">@_pendingScores finished @(_pendingScores == 1 ? "game is" : "games are") waiting to upload @(_pendingScores == 1 ? "It" : "They") will upload when you sign in as @Account.Nickname again with a connection</p>
             }
             <p class="modal-text"><a href="privacy" target="_blank" rel="noopener">Privacy</a></p>
             @if (!_editingNickname)
@@ -412,7 +412,7 @@
 @if (_showYahtzeeSplash)
 {
     <div class="overlay yahtzee-splash" @onclick="DismissSplash" role="alert">
-        <div class="splash-text">YAHTZEE!</div>
+        <div class="splash-text">YAHTZEE</div>
     </div>
 }
 
@@ -556,7 +556,7 @@
 
         if (!AccountService.IsValidNickname(nickname))
         {
-            _nicknameError = "Use 3 to 16 letters, numbers, spaces, _ or -, starting and ending with a letter or number.";
+            _nicknameError = "Use 3 to 16 letters numbers spaces _ or - starting and ending with a letter or number";
             return;
         }
 
@@ -566,16 +566,16 @@
         _nicknameSaving = false;
         _nicknameError = result switch
         {
-            NicknameResult.Taken => "That nickname is taken. Try another.",
-            NicknameResult.Invalid => "That nickname is not allowed. Try another.",
-            NicknameResult.Failed => "Could not save. Check your connection and try again.",
+            NicknameResult.Taken =>             "That nickname is taken Try another",
+                        NicknameResult.Invalid => "That nickname is not allowed Try another",
+                        NicknameResult.Failed => "Could not save Check your connection and try again",
             _ => null
         };
 
         if (result == NicknameResult.Saved)
         {
             _editingNickname = false;
-            _nicknameNotice = "Nickname updated.";
+            _nicknameNotice = "Nickname updated";
         }
     }
 
@@ -595,8 +595,8 @@
 
         bool uploaded = await Queue.SubmitAsync(_engine.GameId, _engine.Mode, total);
         string message = uploaded
-            ? "Score added to the leaderboard."
-            : "Score saved. It will upload when you are back online.";
+            ? "Score added to the leaderboard"
+            : "Score saved It will upload when you are back online";
         _noticeText = message;
         _announcement += " " + message;
     }
@@ -778,8 +778,8 @@
         if (HasProgress)
         {
             _confirm = new ConfirmRequest(
-                "Abandon current game?",
-                "Your current game will be lost.",
+                "Abandon current game",
+                                "Your current game will be lost",
                 "New Game",
                 () =>
                 {
@@ -1087,16 +1087,16 @@
 
             case PickStatus.Scratch:
                 _confirm = new ConfirmRequest(
-                    "Record a zero?",
-                    $"{ScoreRules.GetDisplayName(category)} in Game {gameIndex + 1} does not score with these dice. Mark it with an X (0 points)?",
+                    "Record a zero",
+                                        $"{ScoreRules.GetDisplayName(category)} in Game {gameIndex + 1} does not score with these dice Mark it with an X for 0 points",
                     "Mark X",
                     async () => await FinishScoreAsync(() => _engine.TryScratch(gameIndex, category, _currentPenColorHex), gameIndex, category));
                 break;
 
             default:
                 _noticeText = _engine.RollCount <= 0
-                    ? "Roll at least once before selecting a score cell."
-                    : "That cell cannot be used for this roll.";
+                    ? "Roll at least once before selecting a score cell"
+                    : "That cell cannot be used for this roll";
                 break;
         }
     }
@@ -1122,10 +1122,10 @@
 
         string name = ScoreRules.GetDisplayName(category);
         string recorded = result.WasScratch
-            ? $"{name} in Game {gameIndex + 1} recorded as X."
-            : $"{result.Score} in {name}, Game {gameIndex + 1}.";
+            ? $"{name} in Game {gameIndex + 1} recorded as X"
+            : $"{result.Score} in {name} Game {gameIndex + 1}";
         _noticeText = result.YahtzeeBonusAwarded
-            ? "Yahtzee bonus! +100"
+            ? "Yahtzee bonus 100"
             : result.WasScratch ? recorded : string.Empty;
         _announcement = recorded
             + (result.YahtzeeBonusAwarded ? " Yahtzee bonus, 100 points." : string.Empty)
@@ -1176,26 +1176,26 @@
     {
         if (!_isGameStarted)
         {
-            return ("Tap New Game", "Choose Single or Full Sheet to begin.");
+            return ("Tap New Game", "Choose Single or Full Sheet to begin");
         }
 
         if (_engine.IsGameComplete)
         {
-            return ("Game complete", "Tap New Game to play again.");
+            return ("Game complete", "Tap New Game to play again");
         }
 
         if (_engine.RollCount == 0)
         {
-            return ("Ready to roll", "Roll up to three times, then score one open box.");
+            return ("Ready to roll", "Roll up to three times then score one open box");
         }
 
         string headline = $"Roll {_engine.RollCount} of {YahtzeeGameEngine.RollsPerTurn}";
         if (_engine.IsJokerRoll)
         {
-            return (headline, "Joker! Use the matching upper box, or any open lower box at full value.");
+            return (headline, "Joker Use the matching upper box or any open lower box at full value");
         }
 
-        return (headline, _engine.AwaitingScoreSelection ? "Choose a score." : "Choose a score, or hold dice and roll again.");
+        return (headline, _engine.AwaitingScoreSelection ? "Choose a score" : "Choose a score or hold dice and roll again");
     }
 
     private static readonly string[] FaceNames = ["", "one", "two", "three", "four", "five", "six"];

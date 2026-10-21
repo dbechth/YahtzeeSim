@@ -4,14 +4,14 @@
     <section class="gate-card" aria-labelledby="nick-title">
         <div class="gate-mark" aria-hidden="true">&#9860;</div>
         <h1 id="nick-title">Pick a nickname</h1>
-        <p class="gate-lead">This is the name shown on the leaderboard. Your Google name stays private.</p>
+        <p class="gate-lead">This is the name shown on the leaderboard Your Google name stays private</p>
 
         <form @onsubmit="SaveAsync" class="gate-form">
             <label for="nickname">Nickname</label>
             <input id="nickname" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false"
                    aria-describedby="nick-help nick-error" aria-invalid="@(_error != null ? "true" : "false")"
                    @bind="_nickname" @bind:event="oninput" />
-            <p id="nick-help" class="gate-fine">3 to 16 letters, numbers, spaces, _ or -.</p>
+            <p id="nick-help" class="gate-fine">3 to 16 letters numbers spaces _ or -</p>
             <p id="nick-error" class="gate-error" role="alert">@_error</p>
             <button type="submit" class="gate-btn" disabled="@_saving">Save and play</button>
         </form>
@@ -30,7 +30,7 @@
         string nickname = _nickname.Trim();
         if (!AccountService.IsValidNickname(nickname))
         {
-            _error = "Use 3 to 16 letters, numbers, spaces, _ or -, starting and ending with a letter or number.";
+            _error = "Use 3 to 16 letters numbers spaces _ or - starting and ending with a letter or number";
             return;
         }
 
@@ -40,9 +40,9 @@
         _saving = false;
         _error = result switch
         {
-            NicknameResult.Taken => "That nickname is taken. Try another.",
-            NicknameResult.Invalid => "That nickname is not allowed. Try another.",
-            NicknameResult.Failed => "Could not save. Check your connection and try again.",
+            NicknameResult.Taken =>             "That nickname is taken Try another",
+                        NicknameResult.Invalid => "That nickname is not allowed Try another",
+                        NicknameResult.Failed => "Could not save Check your connection and try again",
             _ => null
         };
     }

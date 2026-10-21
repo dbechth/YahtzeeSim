@@ -5,15 +5,15 @@
     <section class="gate-card" aria-labelledby="gate-title">
         <div class="gate-mark" aria-hidden="true">&#9860;</div>
         <h1 id="gate-title">Yahtzee<span>Sim</span></h1>
-        <p class="gate-lead">Sign in to play and join the leaderboard.</p>
+        <p class="gate-lead">Sign in to play and join the leaderboard</p>
 
         @if (_signInFailed)
         {
-            <p class="gate-error" role="alert">Sign-in did not work. Please try again.</p>
+            <p class="gate-error" role="alert">Sign in did not work Please try again</p>
         }
         @if (Account.ServerUnreachable)
         {
-            <p class="gate-error" role="alert">Can't reach the server. Signing in needs a connection the first time you use this device.</p>
+            <p class="gate-error" role="alert">Cannot reach the server Signing in needs a connection the first time you use this device</p>
         }
 
         @if (Account.ServerUnreachable)
@@ -33,7 +33,7 @@
             </button>
         }
 
-        <p class="gate-fine">We only keep a nickname and your scores. <a href="privacy" target="_blank" rel="noopener">Privacy</a></p>
+        <p class="gate-fine">We only keep a nickname and your scores <a href="privacy" target="_blank" rel="noopener">Privacy</a></p>
     </section>
 </div>
 
