@@ -127,6 +127,19 @@ npm test                              # API unit tests
 
 `dotnet run` alone serves only the static app, so sign-in needs the `wrangler pages dev` command above.
 
+### Exporting Game Data
+
+Download users, scores and every recorded action to `exports/` (JSON and CSV, git-ignored because it is personal data):
+
+```powershell
+npm ci
+npx wrangler login                    # or set CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID
+.\scripts\export-game-data.ps1        # production database
+.\scripts\export-game-data.ps1 -Local # local `wrangler pages dev` database
+```
+
+Use `-OutputDir <path>` to write elsewhere.
+
 ### Adding Facebook Later
 
 Add a provider entry in `functions/_lib/providers.ts` (endpoints, scopes, claim checks), add its client id and secret as Pages secrets, and add a button in `YahtzeeSim.Web/Components/SignInGate.razor`.
