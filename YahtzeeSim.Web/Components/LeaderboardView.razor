@@ -17,23 +17,30 @@
 <div class="lb-body" aria-busy="@(_loading ? "true" : "false")">
     @if (_loading)
     {
-        <p class="lb-message" role="status">Loading&hellip;</p>
+        <p class="lb-message" role="status">Loading</p>
     }
     else if (_failed)
     {
-        <p class="lb-message" role="alert">The leaderboard needs a connection.</p>
+        <p class="lb-message" role="alert">The leaderboard needs a connection</p>
         <p class="lb-message"><button type="button" class="lb-retry" @onclick="() => SelectAsync(_mode, _period)">Try again</button></p>
     }
     else if (_data is { Entries.Count: 0 })
     {
-        <p class="lb-message">No scores yet. Finish a game to be first!</p>
+        <p class="lb-message">No scores yet Finish a game to be first</p>
     }
     else if (_data != null)
     {
         <table class="lb-table">
-            <caption class="lb-sr">@(_mode == "Single" ? "Single" : "Full Sheet") scores, @(_period == "all" ? "all time" : "this week")</caption>
+            <caption class="lb-sr">@(_mode == "Single" ? "Single" : "Full Sheet") scores @(_period == "all" ? "all time" : "this week")</caption>
             <thead>
-                <tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" class="lb-score">Score</th></tr>
+                <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Player</th>
+                    <th scope="col" class="lb-score">High</th>
+                    <th scope="col" class="lb-score">Low</th>
+                    <th scope="col" class="lb-score">Avg</th>
+                    <th scope="col" class="lb-score">Games</th>
+                </tr>
             </thead>
             <tbody>
                 @foreach (var entry in _data.Entries)
@@ -41,8 +48,11 @@
                     bool mine = string.Equals(entry.Nickname, Account.Nickname, StringComparison.OrdinalIgnoreCase);
                     <tr class="@(mine ? "lb-me" : null)" aria-current="@(mine ? "true" : null)">
                         <td>@entry.Rank</td>
-                        <td>@entry.Nickname@(mine ? " (you)" : null)</td>
+                        <td>@entry.Nickname@(mine ? " you" : null)</td>
                         <td class="lb-score">@entry.Best</td>
+                        <td class="lb-score">@entry.Low</td>
+                        <td class="lb-score">@entry.Avg</td>
+                        <td class="lb-score">@entry.Games</td>
                     </tr>
                 }
             </tbody>
@@ -50,11 +60,11 @@
 
         @if (_data.Me is { } me && !_data.Entries.Any(e => string.Equals(e.Nickname, Account.Nickname, StringComparison.OrdinalIgnoreCase)))
         {
-            <p class="lb-yours">Your best: <strong>@me.Best</strong> (rank @me.Rank)</p>
+            <p class="lb-yours">Your high <strong>@me.Best</strong> low <strong>@me.Low</strong> avg <strong>@me.Avg</strong> in @me.Games @(me.Games == 1 ? "game" : "games") rank @me.Rank</p>
         }
         else if (_data.Me == null)
         {
-            <p class="lb-yours">You have no score here yet.</p>
+            <p class="lb-yours">You have no score here yet</p>
         }
     }
 </div>
@@ -64,9 +74,9 @@
 </div>
 
 @code {
-    private sealed record Entry(int Rank, string Nickname, int Best);
+    private sealed record Entry(int Rank, string Nickname, int Best, int Low, int Avg, int Games);
 
-    private sealed record Me(string? Nickname, int Best, int Rank);
+    private sealed record Me(string? Nickname, int Best, int Low, int Avg, int Games, int Rank);
 
     private sealed record Board(List<Entry> Entries, Me? Me);
 

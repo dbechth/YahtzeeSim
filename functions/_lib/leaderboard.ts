@@ -1,6 +1,10 @@
 export interface BoardRow {
   nickname: string;
+  /** High score in the period; entries are ranked by this. */
   best: number;
+  low: number;
+  avg: number;
+  games: number;
 }
 
 export interface RankedRow extends BoardRow {

@@ -96,12 +96,8 @@ describe("Google ID token claims", () => {
 
 describe("leaderboard helpers", () => {
   it("shares ranks between equal scores and skips the next rank", () => {
-    const ranked = rankRows([
-      { nickname: "a", best: 300 },
-      { nickname: "b", best: 250 },
-      { nickname: "c", best: 250 },
-      { nickname: "d", best: 100 },
-    ]);
+    const row = (nickname: string, best: number) => ({ nickname, best, low: best, avg: best, games: 1 });
+    const ranked = rankRows([row("a", 300), row("b", 250), row("c", 250), row("d", 100)]);
     expect(ranked.map((r) => r.rank)).toEqual([1, 2, 2, 4]);
     expect(rankRows([])).toEqual([]);
   });

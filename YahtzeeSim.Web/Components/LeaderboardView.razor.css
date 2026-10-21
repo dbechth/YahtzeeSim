@@ -59,7 +59,7 @@
 
 .lb-table th,
 .lb-table td {
-    padding: 0.45rem 0.6rem;
+    padding: 0.45rem 0.4rem;
     text-align: left;
     border-bottom: 1px solid var(--rule);
 }

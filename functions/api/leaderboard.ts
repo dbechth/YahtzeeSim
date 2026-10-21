@@ -1,5 +1,5 @@
 import { getSessionUser, json } from "../_lib/http";
-import { rankRows, weekStart } from "../_lib/leaderboard";
+import { rankRows, weekStart, type BoardRow } from "../_lib/leaderboard";
 import type { Env } from "../_lib/providers";
 import { parseMode, parsePeriod } from "../_lib/validate";
 
@@ -20,7 +20,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const since = period === "week" ? weekStart(Date.now()) : 0;
 
   const top = await env.DB.prepare(
-    `SELECT u.nickname AS nickname, MAX(s.total) AS best
+    `SELECT u.nickname AS nickname, MAX(s.total) AS best, MIN(s.total) AS low,
+            CAST(ROUND(AVG(s.total)) AS INTEGER) AS avg, COUNT(*) AS games
      FROM scores s JOIN users u ON u.id = s.user_id
      WHERE s.mode = ?1 AND s.played_at >= ?2
      GROUP BY s.user_id
@@ -28,13 +29,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
      LIMIT ?3`,
   )
     .bind(mode, since, TOP_N)
-    .all<{ nickname: string; best: number }>();
+    .all<BoardRow>();
 
-  const mine = await env.DB.prepare("SELECT MAX(total) AS best FROM scores WHERE user_id = ?1 AND mode = ?2 AND played_at >= ?3")
+  const mine = await env.DB.prepare(
+    `SELECT MAX(total) AS best, MIN(total) AS low, CAST(ROUND(AVG(total)) AS INTEGER) AS avg, COUNT(*) AS games
+     FROM scores WHERE user_id = ?1 AND mode = ?2 AND played_at >= ?3`,
+  )
     .bind(user.id, mode, since)
-    .first<{ best: number | null }>();
+    .first<{ best: number | null; low: number; avg: number; games: number }>();
 
-  let me: { nickname: string | null; best: number; rank: number } | null = null;
+  let me: (Omit<BoardRow, "nickname"> & { nickname: string | null; rank: number }) | null = null;
   if (mine?.best != null) {
     const ahead = await env.DB.prepare(
       `SELECT COUNT(*) AS n FROM (
@@ -43,7 +47,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     )
       .bind(mode, since, mine.best)
       .first<{ n: number }>();
-    me = { nickname: user.nickname, best: mine.best, rank: (ahead?.n ?? 0) + 1 };
+    me = { nickname: user.nickname, best: mine.best, low: mine.low, avg: mine.avg, games: mine.games, rank: (ahead?.n ?? 0) + 1 };
   }
 
   return json({ mode, period, entries: rankRows(top.results), me });
