@@ -48,7 +48,10 @@
                     bool mine = string.Equals(entry.Nickname, Account.Nickname, StringComparison.OrdinalIgnoreCase);
                     <tr class="@(mine ? "lb-me" : null)" aria-current="@(mine ? "true" : null)">
                         <td>@entry.Rank</td>
-                        <td>@entry.Nickname@(mine ? " you" : null)</td>
+                        <td>
+                            <span class="lb-name">@entry.Nickname@(mine ? " you" : null)</span>
+                            @BadgeChip(entry.Badge)
+                        </td>
                         <td class="lb-score">@entry.Best</td>
                         <td class="lb-score">@entry.Low</td>
                         <td class="lb-score">@entry.Avg</td>
@@ -60,7 +63,7 @@
 
         @if (_data.Me is { } me && !_data.Entries.Any(e => string.Equals(e.Nickname, Account.Nickname, StringComparison.OrdinalIgnoreCase)))
         {
-            <p class="lb-yours">Your high <strong>@me.Best</strong> low <strong>@me.Low</strong> avg <strong>@me.Avg</strong> in @me.Games @(me.Games == 1 ? "game" : "games") rank @me.Rank</p>
+            <p class="lb-yours">Your high <strong>@me.Best</strong> low <strong>@me.Low</strong> avg <strong>@me.Avg</strong> in @me.Games @(me.Games == 1 ? "game" : "games") rank @me.Rank @BadgeChip(me.Badge)</p>
         }
         else if (_data.Me == null)
         {
@@ -74,11 +77,23 @@
 </div>
 
 @code {
-    private sealed record Entry(int Rank, string Nickname, int Best, int Low, int Avg, int Games);
+    private sealed record Entry(int Rank, string Nickname, int Best, int Low, int Avg, int Games, string? Badge);
 
-    private sealed record Me(string? Nickname, int Best, int Low, int Avg, int Games, int Rank);
+    private sealed record Me(string? Nickname, int Best, int Low, int Avg, int Games, int Rank, string? Badge);
 
     private sealed record Board(List<Entry> Entries, Me? Me);
+
+    /// <summary>Small play-style badge under the nickname; nothing when the player has none yet or the id is unknown.</summary>
+    private static RenderFragment BadgeChip(string? id) => __builder =>
+    {
+        if (id != null && YahtzeeSim.Analysis.Story.BadgeRules.Find(id) is { } badge)
+        {
+            <span class="lb-badge" title="@badge.Description">
+                @((MarkupString)YahtzeeSim.Analysis.Story.BadgeIcons.Svg(badge.Id, 14))
+                <span>@badge.Name</span>
+            </span>
+        }
+    };
 
     [Parameter]
     public EventCallback OnClose { get; set; }

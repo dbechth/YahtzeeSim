@@ -1,6 +1,6 @@
 @inject StrategyService Strategy
 
-<h3 id="strategy-title">My strategy</h3>
+<h3 id="strategy-title">My play style</h3>
 
 <div class="st-body" aria-busy="@(_report == null ? "true" : "false")">
     @if (_report == null)
@@ -20,15 +20,15 @@
     }
     else if (_report.Status == StrategyStatus.NoGames)
     {
-        <p class="st-message">Finish a Full Sheet game while signed in to see your strategy report It looks at your last @(_report.Limit > 0 ? _report.Limit : 10) finished Full Sheet games</p>
+        <p class="st-message">Finish a Full Sheet game while signed in to see your play style It looks at your last @(_report.Limit > 0 ? _report.Limit : 10) finished Full Sheet games</p>
     }
     else if (_report.Status == StrategyStatus.SessionExpired)
     {
-        <p class="st-message" role="alert">Sign in again to see your strategy report</p>
+        <p class="st-message" role="alert">Sign in again to see your play style</p>
     }
     else
     {
-        <p class="st-message" role="alert">@(_report.Status == StrategyStatus.Offline ? "Your strategy report needs a connection" : "Your strategy report could not be built")</p>
+        <p class="st-message" role="alert">@(_report.Status == StrategyStatus.Offline ? "Your play style needs a connection" : "Your play style could not be worked out")</p>
         <p class="st-message"><button type="button" class="st-retry" @onclick="LoadAsync">Try again</button></p>
     }
 </div>

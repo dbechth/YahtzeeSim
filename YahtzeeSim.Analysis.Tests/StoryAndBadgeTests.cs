@@ -227,6 +227,22 @@ public class BadgeTests
     }
 
     [Fact]
+    public void ServerAllowlistMatchesTheBadgeTable()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "YahtzeeSim.sln")))
+        {
+            dir = dir.Parent;
+        }
+
+        string ts = File.ReadAllText(Path.Combine(dir!.FullName, "functions", "_lib", "badges.ts"));
+        int start = ts.IndexOf("STYLE_BADGES = [", StringComparison.Ordinal);
+        string list = ts[start..ts.IndexOf("] as const", start, StringComparison.Ordinal)];
+        var serverIds = System.Text.RegularExpressions.Regex.Matches(list, "\"([a-z-]+)\"").Select(m => m.Groups[1].Value).Order().ToList();
+        Assert.Equal(BadgeRules.AllWithDefault.Select(b => b.Id).Order().ToList(), serverIds);
+    }
+
+    [Fact]
     public void BadgesHaveUniqueIdsAndDescriptions()
     {
         var all = BadgeRules.AllWithDefault.ToList();

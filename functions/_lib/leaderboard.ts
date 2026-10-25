@@ -5,6 +5,8 @@ export interface BoardRow {
   low: number;
   avg: number;
   games: number;
+  /** Play-style badge id, or null when the player has none yet. */
+  badge: string | null;
 }
 
 export interface RankedRow extends BoardRow {

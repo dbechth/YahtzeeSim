@@ -116,3 +116,44 @@ h3 {
     font-family: Georgia, "Times New Roman", serif;
     color: var(--forest);
 }
+
+.lb-name {
+    display: block;
+}
+
+/* Play-style badge under the nickname. The icon is injected markup, so it needs ::deep. */
+.lb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.15rem;
+    padding: 0.05rem 0.45rem 0.05rem 0.35rem;
+    border-radius: 999px;
+    background: rgba(244, 198, 106, 0.25);
+    color: var(--forest);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: help;
+}
+
+.lb-badge ::deep svg {
+    flex: none;
+    color: #9a6b10;
+}
+
+.lb-yours .lb-badge {
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+
+@media (max-width: 480px) {
+    .lb-badge {
+        white-space: normal;
+        line-height: 1.1;
+        gap: 0.2rem;
+        padding: 0.1rem 0.3rem 0.1rem 0.2rem;
+        border-radius: 8px;
+        font-size: 0.66rem;
+    }
+}

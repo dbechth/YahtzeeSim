@@ -3,6 +3,7 @@
 @inject AccountService Account
 @inject ScoreQueue Queue
 @inject ActionLog Actions
+@inject StrategyService Strategy
 
 <PageTitle>YahtzeeSim</PageTitle>
 
@@ -409,7 +410,7 @@
             @if (!_editingNickname)
             {
                 <div class="modal-actions">
-                    <button type="button" @onclick="OpenStrategy">My strategy</button>
+                    <button type="button" @onclick="OpenStrategy">My play style</button>
                     <button type="button" @onclick="StartNicknameEdit">Change nickname</button>
                     <button type="button" @onclick="SignOutAsync">Sign out</button>
                     <button type="button" class="secondary" @onclick="CloseAccount">Close</button>
@@ -614,11 +615,11 @@
     }
 
     // Uploads a finished game, or leaves it queued (offline, or the server is unavailable) to retry later.
-    private async Task SubmitFinishedGameAsync()
+    private async Task<bool> SubmitFinishedGameAsync()
     {
         if (_engine.FinalScore is not int total)
         {
-            return;
+            return false;
         }
 
         bool uploaded = await Queue.SubmitAsync(_engine.GameId, _engine.Mode, total);
@@ -627,6 +628,7 @@
             : "Score saved It will upload when you are back online";
         _noticeText = message;
         _announcement += " " + message;
+        return uploaded;
     }
 
     private bool HasOpenDialog => ActiveDialog != null;
@@ -1166,12 +1168,18 @@
             OpenColorPicker("Yahtzee! Pick a pen color", true);
         }
 
+        bool refreshBadge = false;
         if (_engine.IsGameComplete)
         {
-            await SubmitFinishedGameAsync();
+            refreshBadge = await SubmitFinishedGameAsync() && _engine.Mode == GameMode.FullSheet;
         }
 
         await Actions.FlushAsync();
+        if (refreshBadge)
+        {
+            // In the background: the badge on the leaderboard follows the player's latest games.
+            _ = Strategy.RefreshBadgeAsync();
+        }
     }
 
     private PickStatus GetPickStatus(int gameIndex, ScoreCategory category)

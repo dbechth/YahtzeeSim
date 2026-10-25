@@ -740,7 +740,7 @@ button:disabled {
 }
 
 .strategy-modal {
-    width: min(68rem, 100%);
+    width: min(44rem, 100%);
     background: #f1efe6;
     padding-bottom: 0;
 }
