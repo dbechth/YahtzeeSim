@@ -162,8 +162,11 @@ dotnet run --project YahtzeeSim.Analysis.Cli -c Release -- --write-app-assets Ya
 `YahtzeeSim.Research` is a WPF app for the owner's research. It needs the WebView2 runtime (built into Windows 11) and, to pull data, the same Node/wrangler setup as the export script.
 
 ```powershell
-.\scripts\research.ps1      # or: dotnet run --project YahtzeeSim.Research -c Release
+.\scripts\install-research.ps1   # once: builds it and adds "YahtzeeSim Research" to the Start menu and desktop
+.\scripts\research.ps1           # or run it straight from source
 ```
+
+Run `install-research.ps1` again after pulling code changes to update the installed app (`-NoDesktop` skips the desktop shortcut, `-Uninstall` removes the shortcuts). The app is published to `YahtzeeSim.Research\bin\publish` inside the repository so it can find `exports/` and the export script.
 
 - **Pull latest data** runs `scripts/export-game-data.ps1`, then re-analyses. **Re-run analysis** uses the current export.
 - Each player has four views: **Overview** (all players, method, rules), **Full report**, **Story preview** (the short play-style story with badge and tip, exactly as the player will see it) and **Badge metrics** (each badge's measurement against its threshold and the reference strategy, for tuning).

@@ -35,6 +35,7 @@
 !**/*.manifest
 !**/*.appxmanifest
 !**/*.png
+!**/*.ico
 !**/*.svg
 !**/*.ts
 !**/*.sql
