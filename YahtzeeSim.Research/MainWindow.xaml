@@ -1,0 +1,143 @@
+<Window x:Class="YahtzeeSim.Research.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="YahtzeeSim Research" Height="860" Width="1380" MinHeight="500" MinWidth="900"
+        Background="#F1EFE6" FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Forest" Color="#17352C" />
+        <SolidColorBrush x:Key="Accent" Color="#1F6F5F" />
+        <SolidColorBrush x:Key="Line" Color="#DEDFD5" />
+        <SolidColorBrush x:Key="Muted" Color="#56645C" />
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#164D42" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Secondary" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#E4E6DC" />
+            <Setter Property="Foreground" Value="{StaticResource Forest}" />
+        </Style>
+        <Style x:Key="ViewTab" TargetType="RadioButton">
+            <Setter Property="GroupName" Value="Views" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="#E4E6DC" CornerRadius="999" Padding="14,6">
+                            <ContentPresenter x:Name="Text" TextElement.Foreground="#17352C" TextElement.FontWeight="SemiBold" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1F6F5F" />
+                                <Setter TargetName="Text" Property="TextElement.Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource Forest}" Padding="16,12">
+            <DockPanel LastChildFill="True">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock Text="YahtzeeSim" Foreground="#F4C66A" FontFamily="Georgia" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                    <TextBlock Text="  Research" Foreground="#B8EFC7" FontSize="16" VerticalAlignment="Center" Margin="0,0,24,0" />
+                    <Button x:Name="PullButton" Content="Pull latest data" Click="Pull_Click" ToolTip="Runs scripts\export-game-data.ps1, then analyses" />
+                    <Button x:Name="AnalyzeButton" Content="Re-run analysis" Click="Analyze_Click" Style="{StaticResource Secondary}" />
+                    <Button Content="Open exports folder" Click="OpenFolder_Click" Style="{StaticResource Secondary}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ProgressBar x:Name="Busy" Width="120" Height="6" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,12,0" Foreground="#B8EFC7" Background="#2B4A41" BorderThickness="0" />
+                    <TextBlock x:Name="Status" Foreground="#E7EFE9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#F8F6EE" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Players" FontFamily="Georgia" FontSize="17" FontWeight="Bold" Foreground="{StaticResource Forest}" Margin="14,12,14,6" />
+                    <ListBox x:Name="PlayerList" BorderThickness="0" Background="Transparent" SelectionChanged="PlayerList_SelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,8" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Nickname}" FontWeight="Bold" FontSize="14" Foreground="#17352C" />
+                                    <TextBlock Text="{Binding BadgeName}" Foreground="#1F6F5F" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Summary}" Foreground="#56645C" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <RadioButton x:Name="OverviewTab" Content="Overview" Style="{StaticResource ViewTab}" IsChecked="True" Checked="ViewTab_Checked" />
+                    <RadioButton x:Name="ReportTab" Content="Full report" Style="{StaticResource ViewTab}" Checked="ViewTab_Checked" />
+                    <RadioButton x:Name="StoryTab" Content="Story preview (what the player sees)" Style="{StaticResource ViewTab}" Checked="ViewTab_Checked" />
+                    <RadioButton x:Name="BadgeTab" Content="Badge metrics" Style="{StaticResource ViewTab}" Checked="ViewTab_Checked" />
+                </StackPanel>
+                <Border Grid.Row="1" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="12" Background="White" ClipToBounds="True">
+                    <wv2:WebView2 x:Name="Viewer" />
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Expander x:Name="LogExpander" Grid.Row="2" Header="Log" Margin="12,0,12,8" Foreground="{StaticResource Forest}">
+            <TextBox x:Name="Log" Height="160" IsReadOnly="True" FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" Background="#FBFAF4" BorderBrush="{StaticResource Line}" />
+        </Expander>
+    </Grid>
+</Window>

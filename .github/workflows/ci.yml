@@ -39,5 +39,8 @@ jobs:
       - name: Run strategy analysis tests
         run: dotnet test YahtzeeSim.Analysis.Tests/YahtzeeSim.Analysis.Tests.csproj -c Release
 
+      - name: Build research desktop app (compile check only; it runs on Windows)
+        run: dotnet build YahtzeeSim.Research/YahtzeeSim.Research.csproj -c Release -p:EnableWindowsTargeting=true
+
       - name: Build Web
         run: dotnet build YahtzeeSim.Web/YahtzeeSim.Web.csproj -c Release

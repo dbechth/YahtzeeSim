@@ -149,13 +149,27 @@ After exporting, build a rule-based strategy report from the finished Full Sheet
 .\scripts\analyze-strategy.ps1 -Simulations 5000 # more simulated reference games (slower, tighter percentiles)
 ```
 
-Each game is replayed from its actions and must reproduce the submitted total. Every keep, early stop and box choice is graded against a reference strategy built on an exact single-card solver (245.87 points per card), and each total is split into baseline + Full Sheet choice + dice luck − decision cost. Findings come only from the fixed rule table in `YahtzeeSim.Analysis/Rules/StrategyRules.cs`; each shows its condition, threshold and evidence. The output (`index.html`, one HTML and Markdown page per player, `decisions.csv`) is personal data and stays in the git-ignored `exports/` folder. The same export and seed always give the same report.
+Each game is replayed from its actions and must reproduce the submitted total. Every keep, early stop and box choice is graded against a reference strategy built on an exact single-card solver (245.87 points per card), and each total is split into baseline + Full Sheet choice + dice luck − decision cost. Findings come only from the fixed rule table in `YahtzeeSim.Analysis/Rules/StrategyRules.cs`; each shows its condition, threshold and evidence. The output (`index.html`, one HTML and Markdown page per player, a `<player>-story.html` play-style story, `decisions.csv`) is personal data and stays in the git-ignored `exports/` folder. The same export and seed always give the same report.
 
 Players see the same report for their own last 10 finished Full Sheet games in the app under **Account → My strategy**. The app fetches the games from `GET /api/strategy` and runs the analysis in the browser, using the precomputed solver table and reference simulations in `YahtzeeSim.Web/wwwroot/analysis/`. If the scoring rules, the reference strategy or the simulation change, regenerate those files (the analysis tests fail until you do):
 
 ```powershell
 dotnet run --project YahtzeeSim.Analysis.Cli -c Release -- --write-app-assets YahtzeeSim.Web/wwwroot/analysis
 ```
+
+### Research Desktop App (Windows)
+
+`YahtzeeSim.Research` is a WPF app for the owner's research. It needs the WebView2 runtime (built into Windows 11) and, to pull data, the same Node/wrangler setup as the export script.
+
+```powershell
+.\scripts\research.ps1      # or: dotnet run --project YahtzeeSim.Research -c Release
+```
+
+- **Pull latest data** runs `scripts/export-game-data.ps1`, then re-analyses. **Re-run analysis** uses the current export.
+- Each player has four views: **Overview** (all players, method, rules), **Full report**, **Story preview** (the short play-style story with badge and tip, exactly as the player will see it) and **Badge metrics** (each badge's measurement against its threshold and the reference strategy, for tuning).
+- It uses the solver table and reference simulations shipped with the web app, and also saves all reports to `exports/analysis/`.
+
+The story and badge rules are versioned in `YahtzeeSim.Analysis/Story/StoryRules.cs` and `BadgeRules.cs`. Badges describe play style only, never skill; a player gets the qualifying badge with the greatest strength, or All-Rounder.
 
 ### Adding Facebook Later
 

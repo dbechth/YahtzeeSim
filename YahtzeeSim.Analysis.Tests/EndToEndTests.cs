@@ -40,7 +40,7 @@ public class EndToEndTests
         string output = Path.Combine(dir, "analysis");
         var files = ReportWriter.WriteAll(result, output);
         Assert.Equal(
-            ["alice.html", "alice.md", "bob-jr.html", "bob-jr.md", "decisions.csv", "index.html"],
+            ["alice-story.html", "alice.html", "alice.md", "bob-jr-story.html", "bob-jr.html", "bob-jr.md", "decisions.csv", "index.html"],
             files.Select(Path.GetFileName).Order(StringComparer.Ordinal));
 
         string index = File.ReadAllText(Path.Combine(output, "index.html"));

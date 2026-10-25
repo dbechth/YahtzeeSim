@@ -127,6 +127,7 @@ public static class ReportWriter
         {
             Write(p.Slug + ".html", HtmlReport.Player(result, p));
             Write(p.Slug + ".md", TextReports.Markdown(result, p));
+            Write(p.Slug + "-story.html", StoryReport.Page(Story.StoryRules.Build(p)));
         }
 
         Write("decisions.csv", TextReports.DecisionsCsv(result));
