@@ -5,7 +5,8 @@ Yahtzee simulator delivered as one web app (Blazor WebAssembly PWA):
 - `YahtzeeSim.Web`: the web front end
 - `YahtzeeSim.Engine`: the single game engine (no UI dependencies)
 - `YahtzeeSim.Engine.Tests`: engine unit tests (`dotnet test`)
-- `functions/`, `migrations/`, `wrangler.toml`: the account and leaderboard API (Cloudflare Pages Functions + D1), tested with `functions-tests/` (`npm test`)
+- `functions/`, `migrations/`, `wrangler.toml`: the account, leaderboard and challenges API (Cloudflare Pages Functions + D1), tested with `functions-tests/` (`npm test`)
+- `workers/challenge-cron`: a scheduled Worker that ends challenges and sends reminders
 
 Players sign in with Google (no passwords are handled by this app), pick a nickname and appear on the leaderboard. See [Accounts and Leaderboard](#accounts-and-leaderboard).
 
@@ -19,12 +20,22 @@ dotnet run --project .\YahtzeeSim.Web\YahtzeeSim.Web.csproj
 
 Open the URL shown in the console (usually `https://localhost:xxxx`).
 
-## Install On iPhone/iPad (No App Store)
+## Install On Your Phone (No App Store)
+
+The app shows an install banner with these steps until it is installed.
+
+**iPhone or iPad**
 
 1. Open the web app URL in Safari.
 2. Tap Share.
 3. Tap Add to Home Screen.
-4. Launch from the new home screen icon.
+4. Launch from the new home screen icon. Challenge notifications only work in this Home Screen app and need iOS 16.4 or later.
+
+**Android**
+
+1. Open the web app URL in Chrome.
+2. Tap Install in the banner, or open the browser menu (⋮) and tap Install app or Add to Home screen.
+3. Launch from the home screen or app list.
 
 For sharing outside your local network, deploy `YahtzeeSim.Web` to a host like:
 
@@ -126,6 +137,27 @@ npm test                              # API unit tests
 ```
 
 `dotnet run` alone serves only the static app, so sign-in needs the `wrangler pages dev` command above.
+
+### Challenges and Notifications
+
+Players can challenge others to one game from the flag button in the top bar: pick a name, Single or Full Sheet, an end time (3 hours to 1 week) and players by nickname, or share the invite link (`/?join=...`). Only the players in a challenge see it. Each player's first finished challenge game counts, and it also counts on the leaderboard like any other game. A challenge ends at its end time or when everyone has played.
+
+Players in a challenge get push notifications when they are invited, when someone posts a score, about 6 hours before the end if they have not played, and when it ends. Notifications use standard Web Push (no Firebase or other service): Android works in the browser or installed app, iPhone and iPad need the Home Screen app on iOS 16.4 or later. Each player turns them on per device in the Challenges screen.
+
+The end-of-challenge results and reminders come from a small scheduled Worker (`workers/challenge-cron`, every 15 minutes) that the deploy workflow publishes after the site.
+
+One-time setup:
+
+1. **API token**: add `Account -> Workers Scripts -> Edit` to `CLOUDFLARE_API_TOKEN` so the workflow can deploy the Worker. Until then the deploy shows a warning; challenges still end on time in the app, but nobody gets the results or reminder notifications.
+2. **Push keys**: run this once (needs `npm ci` and `npx wrangler login`). It creates the keys and stores them as secrets on the Pages project and the Worker. Keep them: new keys mean every player has to turn notifications on again, so re-running needs `-Force`.
+
+	```powershell
+	.\scripts\setup-push.ps1 -Subject mailto:you@example.com
+	```
+
+3. Redeploy (run the workflow) so the site picks up the secrets. Until the keys exist the app simply hides the notification option.
+
+Locally, `.\scripts\setup-push.ps1 -Subject mailto:you@example.com -Local` writes the keys to `.dev.vars` for `wrangler pages dev`. To run the scheduler locally: `npx wrangler dev --config workers/challenge-cron/wrangler.toml --test-scheduled`, then open `http://localhost:8787/__scheduled`.
 
 ### Exporting Game Data
 

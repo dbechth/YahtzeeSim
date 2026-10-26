@@ -8,6 +8,39 @@ namespace YahtzeeSim.Engine.Tests;
 public class PersistenceAndProbabilityTests
 {
     [Fact]
+    public void ChallengeGame_KeepsItsChallengeThroughSaveAndResume()
+    {
+        var engine = NewGame();
+        Assert.True(engine.StartChallenge(GameMode.FullSheet, "abcdefghijklmnop_-12"));
+        Assert.Equal(GameMode.FullSheet, engine.Mode);
+        Assert.Equal("abcdefghijklmnop_-12", engine.ChallengeId);
+
+        var restored = new YahtzeeGameEngine();
+        Assert.True(restored.TryLoad(engine.Serialize()));
+        Assert.Equal("abcdefghijklmnop_-12", restored.ChallengeId);
+        Assert.Equal(engine.GameId, restored.GameId);
+
+        restored.Reset(GameMode.Single);
+        Assert.Null(restored.ChallengeId);
+    }
+
+    [Theory]
+    [InlineData("short")]
+    [InlineData("has spaces in it ok")]
+    [InlineData("<script>alert(1)</script>")]
+    public void ChallengeGame_RefusesMalformedIds(string id)
+    {
+        var engine = NewGame();
+        Assert.False(engine.StartChallenge(GameMode.Single, id));
+        Assert.Null(engine.ChallengeId);
+
+        string tampered = engine.Serialize().Replace("\"ChallengeId\":null", $"\"ChallengeId\":\"{id}\"");
+        var restored = new YahtzeeGameEngine();
+        Assert.True(restored.TryLoad(tampered));
+        Assert.Null(restored.ChallengeId);
+    }
+
+    [Fact]
     public void Save_RoundTripsFullState()
     {
         var engine = NewGame(GameMode.FullSheet, seed: 5);

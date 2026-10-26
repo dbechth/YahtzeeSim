@@ -6,7 +6,8 @@ using YahtzeeSim.Engine;
 
 namespace YahtzeeSim.Web.Services;
 
-public sealed record PendingScore(string UserId, Guid GameId, GameMode Mode, int Total);
+/// <summary>A finished game waiting to upload. <see cref="ChallengeId"/> links it to a challenge (null for older queued items).</summary>
+public sealed record PendingScore(string UserId, Guid GameId, GameMode Mode, int Total, string? ChallengeId = null);
 
 /// <summary>
 /// Finished games waiting to be uploaded. They live in localStorage so a game completed offline (or just
@@ -25,7 +26,7 @@ public sealed class ScoreQueue(HttpClient http, IJSRuntime js, AccountService ac
     }
 
     /// <summary>Queues a finished game and tries to upload straight away. Returns true if nothing is left waiting for this user.</summary>
-    public async Task<bool> SubmitAsync(Guid gameId, GameMode mode, int total)
+    public async Task<bool> SubmitAsync(Guid gameId, GameMode mode, int total, string? challengeId = null)
     {
         if (account.UserId is not { } userId)
         {
@@ -37,7 +38,7 @@ public sealed class ScoreQueue(HttpClient http, IJSRuntime js, AccountService ac
         {
             var items = await LoadAsync();
             items.RemoveAll(i => i.UserId == userId && i.GameId == gameId);
-            items.Add(new PendingScore(userId, gameId, mode, total));
+            items.Add(new PendingScore(userId, gameId, mode, total, challengeId));
             await SaveAsync(items);
         }
         finally
@@ -115,7 +116,7 @@ public sealed class ScoreQueue(HttpClient http, IJSRuntime js, AccountService ac
     {
         try
         {
-            using var response = await http.PostAsJsonAsync("api/scores", new { gameId = item.GameId, mode = item.Mode.ToString(), total = item.Total });
+            using var response = await http.PostAsJsonAsync("api/scores", new { gameId = item.GameId, mode = item.Mode.ToString(), total = item.Total, challengeId = item.ChallengeId });
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
                 return UploadOutcome.SessionExpired;

@@ -25,6 +25,9 @@ public sealed class YahtzeeGameEngine
     /// <summary>Identifies one game across autosave/resume so a finished score is only ever submitted once.</summary>
     public Guid GameId { get; private set; } = Guid.NewGuid();
 
+    /// <summary>The challenge this game is played for (its score also becomes the player's challenge entry), or null.</summary>
+    public string? ChallengeId { get; private set; }
+
     /// <summary>Total across all cards once the game is complete; null while it is still in progress.</summary>
     public int? FinalScore => IsGameComplete ? Cards.Sum(c => c.GameTotal ?? 0) : null;
 
@@ -59,6 +62,7 @@ public sealed class YahtzeeGameEngine
         Mode = mode;
         RollCount = 0;
         GameId = Guid.NewGuid();
+        ChallengeId = null;
         _undoSnapshot = null;
 
         Dice = Enumerable.Range(1, DiceInGame)
@@ -69,6 +73,22 @@ public sealed class YahtzeeGameEngine
             .Select(_ => new GameCardState())
             .ToList();
     }
+
+    /// <summary>Starts a new game for a challenge. Challenge ids are short URL-safe tokens; anything else is refused.</summary>
+    public bool StartChallenge(GameMode mode, string challengeId)
+    {
+        if (!IsChallengeId(challengeId))
+        {
+            return false;
+        }
+
+        Reset(mode);
+        ChallengeId = challengeId;
+        return true;
+    }
+
+    private static bool IsChallengeId(string? value) =>
+        value is { Length: >= 16 and <= 64 } && value.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 
     public bool IsCardEnabled(int cardIndex)
     {
@@ -209,7 +229,7 @@ public sealed class YahtzeeGameEngine
 
     public string Serialize()
     {
-        var save = new GameSave { GameId = GameId, Current = CreateSnapshot(), Undo = _undoSnapshot };
+        var save = new GameSave { GameId = GameId, ChallengeId = ChallengeId, Current = CreateSnapshot(), Undo = _undoSnapshot };
         return JsonSerializer.Serialize(save, JsonOptions);
     }
 
@@ -235,6 +255,7 @@ public sealed class YahtzeeGameEngine
             RestoreSnapshot(save.Current);
             _undoSnapshot = save.Undo;
             GameId = save.GameId is { } id && id != Guid.Empty ? id : Guid.NewGuid();
+            ChallengeId = IsChallengeId(save.ChallengeId) ? save.ChallengeId : null;
             return true;
         }
         catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)

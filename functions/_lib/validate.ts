@@ -28,13 +28,17 @@ export interface ScoreSubmission {
   gameId: string;
   mode: GameMode;
   total: number;
+  /** The challenge this game was played for (optional). */
+  challengeId?: string;
 }
+
+const CHALLENGE_ID = /^[A-Za-z0-9_-]{16,64}$/;
 
 export function validateScoreSubmission(body: unknown): { ok: true; value: ScoreSubmission } | { ok: false; error: string } {
   if (typeof body !== "object" || body === null) {
     return { ok: false, error: "invalid_body" };
   }
-  const { gameId, mode, total } = body as Record<string, unknown>;
+  const { gameId, mode, total, challengeId } = body as Record<string, unknown>;
   if (typeof gameId !== "string" || !UUID.test(gameId)) {
     return { ok: false, error: "invalid_game_id" };
   }
@@ -45,7 +49,18 @@ export function validateScoreSubmission(body: unknown): { ok: true; value: Score
   if (typeof total !== "number" || !Number.isInteger(total) || total < 0 || total > MAX_SCORE[parsedMode]) {
     return { ok: false, error: "invalid_total" };
   }
-  return { ok: true, value: { gameId: gameId.toLowerCase(), mode: parsedMode, total } };
+  if (challengeId !== undefined && challengeId !== null && (typeof challengeId !== "string" || !CHALLENGE_ID.test(challengeId))) {
+    return { ok: false, error: "invalid_challenge_id" };
+  }
+  return {
+    ok: true,
+    value: {
+      gameId: gameId.toLowerCase(),
+      mode: parsedMode,
+      total,
+      ...(typeof challengeId === "string" ? { challengeId } : {}),
+    },
+  };
 }
 
 export const ACTION_TYPES = ["Roll", "Hold", "Unhold", "Score", "Scratch", "Undo"] as const;

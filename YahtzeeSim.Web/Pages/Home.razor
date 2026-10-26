@@ -1,9 +1,12 @@
 @page "/"
+@implements IDisposable
 @inject IJSRuntime JS
 @inject AccountService Account
 @inject ScoreQueue Queue
 @inject ActionLog Actions
 @inject StrategyService Strategy
+@inject ChallengeService Challenges
+@inject NavigationManager Navigation
 
 <PageTitle>YahtzeeSim</PageTitle>
 
@@ -27,6 +30,15 @@
             <rect x="1" y="1" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6" />
             <rect x="2.5" y="@(_diceEdge == "top" ? 2.5 : 9)" width="15" height="4.5" rx="1.2" fill="currentColor" />
         </svg>
+    </button>
+    <button type="button" class="dock-btn account-btn challenges-btn" aria-label="@ChallengesLabel" title="Challenges" @onclick="() => OpenChallenges()">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M5 2a1 1 0 0 1 1 1v.4c1.6-.9 3.4-.9 5.2-.1 1.7.8 3.3.8 5 0l.9-.4A1 1 0 0 1 18.5 4v9a1 1 0 0 1-.6.9l-1.3.6c-2.2 1-4.4 1-6.6 0-1.4-.6-2.7-.6-4-.1V21a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1z" />
+        </svg>
+        @if (Challenges.UnreadCount > 0)
+        {
+            <span class="unread-dot" aria-hidden="true"></span>
+        }
     </button>
     <button type="button" class="dock-btn account-btn" aria-label="Leaderboard" title="Leaderboard" @onclick="OpenLeaderboard">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
@@ -365,6 +377,15 @@
     </div>
 }
 
+@if (_showChallenges)
+{
+    <div class="overlay" @onkeydown="OnChallengesKeyDown">
+        <div class="modal challenges-modal" role="dialog" aria-modal="true" aria-labelledby="ch-title" tabindex="-1" @ref="_dialogRef">
+            <ChallengesView OnClose="CloseChallenges" OnPlay="PlayChallengeAsync" OpenChallengeId="@_openChallengeId" Message="@_challengeMessage" />
+        </div>
+    </div>
+}
+
 @if (_showStrategy)
 {
     <div class="overlay" @onkeydown="OnStrategyKeyDown">
@@ -455,6 +476,10 @@
     private string _colorPickerTitle = "Pick Pen Color";
     private bool _showResumePrompt;
     private bool _showLeaderboard;
+    private bool _showChallenges;
+    private string? _openChallengeId;
+    private string? _challengeMessage;
+    private DotNetObjectReference<Home>? _self;
     private bool _showStrategy;
     private bool _showAccount;
     private bool _editingNickname;
@@ -481,6 +506,13 @@
     {
         _engine.Reset(GameMode.Single);
         RefreshAll(false);
+        Challenges.Changed += OnChallengesChanged;
+    }
+
+    public void Dispose()
+    {
+        Challenges.Changed -= OnChallengesChanged;
+        _self?.Dispose();
     }
 
     // Topmost dialog first; matches the order the overlays are rendered in.
@@ -488,6 +520,7 @@
         : _showModePicker ? "mode"
         : _confirm != null ? "confirm"
         : _showLeaderboard ? "leaderboard"
+        : _showChallenges ? "challenges"
         : _showStrategy ? "strategy"
         : _showAccount ? "account"
         : _showResumePrompt ? "resume"
@@ -496,6 +529,137 @@
     private string AccountLabel => $"Account: {Account.Nickname}";
 
     private void OpenLeaderboard() => _showLeaderboard = true;
+
+    private string ChallengesLabel => Challenges.UnreadCount > 0 ? $"Challenges {Challenges.UnreadCount} new" : "Challenges";
+
+    private void OpenChallenges(string? challengeId = null, string? message = null)
+    {
+        _openChallengeId = challengeId;
+        _challengeMessage = message;
+        _showChallenges = true;
+    }
+
+    private void CloseChallenges()
+    {
+        _showChallenges = false;
+        _openChallengeId = null;
+        _challengeMessage = null;
+    }
+
+    private void OnChallengesKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            CloseChallenges();
+        }
+    }
+
+    /// <summary>Starts the player's game for a challenge, after confirming if a game is in progress.</summary>
+    private Task PlayChallengeAsync(ChallengeDetail challenge)
+    {
+        var mode = challenge.Mode == "FullSheet" ? GameMode.FullSheet : GameMode.Single;
+        CloseChallenges();
+        if (HasProgress)
+        {
+            _confirm = new ConfirmRequest(
+                "Play your challenge game",
+                "Your current game will be lost",
+                "Play",
+                () => StartChallengeGameAsync(mode, challenge.Id));
+            return Task.CompletedTask;
+        }
+
+        return StartChallengeGameAsync(mode, challenge.Id);
+    }
+
+    private async Task StartChallengeGameAsync(GameMode mode, string challengeId)
+    {
+        if (!_engine.StartChallenge(mode, challengeId))
+        {
+            return;
+        }
+
+        _isGameStarted = true;
+        _noticeText = string.Empty;
+        _announcement = $"{ModeLabel} game started.";
+        DismissSplash();
+        RefreshAll(false);
+        await RemoveStorageAsync(SaveKey);
+        OpenColorPicker("Pick Pen Color", false);
+    }
+
+    /// <summary>Handles links into the app: an invite (?join=) or a challenge to open (?challenge=, from notifications).</summary>
+    private async Task HandleChallengeLinksAsync()
+    {
+        string? openId = QueryValue(Navigation.Uri, "challenge");
+        string? pending = await Challenges.TakePendingJoinAsync();
+        string? token = QueryValue(Navigation.Uri, "join") ?? pending;
+        if (openId != null || QueryValue(Navigation.Uri, "join") != null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("history.replaceState", null, "", Navigation.BaseUri);
+            }
+            catch (JSException)
+            {
+            }
+        }
+
+        if (token != null)
+        {
+            var joined = await Challenges.JoinAsync(token);
+            OpenChallenges(joined.Value, joined.Ok ? null : joined.Error switch
+            {
+                "challenge_finished" => "That challenge has already finished",
+                "challenge_full" => "That challenge is full",
+                "offline" => "Joining a challenge needs a connection Open the invite link again when you are online",
+                _ => "That invite link does not work It may be mistyped or the challenge has ended"
+            });
+        }
+        else if (openId != null)
+        {
+            OpenChallenges(openId);
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>A notification was tapped while the app was open.</summary>
+    [JSInvokable]
+    public async Task OnNotificationOpened(string url)
+    {
+        if (QueryValue(url, "challenge") is { } id)
+        {
+            await InvokeAsync(() =>
+            {
+                OpenChallenges(id);
+                StateHasChanged();
+            });
+        }
+    }
+
+    private static string? QueryValue(string url, string name)
+    {
+        int q = url.IndexOf('?');
+        if (q < 0)
+        {
+            return null;
+        }
+
+        foreach (string part in url[(q + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int eq = part.IndexOf('=');
+            if (eq > 0 && part[..eq] == name)
+            {
+                string value = Uri.UnescapeDataString(part[(eq + 1)..]);
+                return value.Length is > 0 and <= 64 ? value : null;
+            }
+        }
+
+        return null;
+    }
+
+    private void OnChallengesChanged() => _ = InvokeAsync(StateHasChanged);
 
     private void CloseLeaderboard() => _showLeaderboard = false;
 
@@ -622,12 +786,17 @@
             return false;
         }
 
-        bool uploaded = await Queue.SubmitAsync(_engine.GameId, _engine.Mode, total);
+        bool uploaded = await Queue.SubmitAsync(_engine.GameId, _engine.Mode, total, _engine.ChallengeId);
         string message = uploaded
-            ? "Score added to the leaderboard"
+            ? _engine.ChallengeId != null ? "Score added to the leaderboard and your challenge" : "Score added to the leaderboard"
             : "Score saved It will upload when you are back online";
         _noticeText = message;
         _announcement += " " + message;
+        if (uploaded && _engine.ChallengeId != null)
+        {
+            await Challenges.RefreshUnreadAsync();
+        }
+
         return uploaded;
     }
 
@@ -635,7 +804,7 @@
 
     private int? TurnNumber => _isGameStarted ? _engine.TurnNumber : null;
 
-    private string ModeLabel => _engine.Mode == GameMode.FullSheet ? "Full Sheet" : "Single";
+    private string ModeLabel => (_engine.Mode == GameMode.FullSheet ? "Full Sheet" : "Single") + (_engine.ChallengeId != null ? " challenge" : string.Empty);
 
     private (string Headline, string Detail) Status => GetStatus();
 
@@ -717,6 +886,19 @@
         {
             // Storage can be unavailable (private mode); the game still works without saving.
         }
+
+        try
+        {
+            _self = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("yahtzeeSimPush.listen", _self);
+        }
+        catch (JSException)
+        {
+            // Without the listener a tapped notification still opens the app; it just will not jump to the challenge.
+        }
+
+        await HandleChallengeLinksAsync();
+        await Challenges.RefreshUnreadAsync();
     }
 
     private bool HasProgress => _isGameStarted

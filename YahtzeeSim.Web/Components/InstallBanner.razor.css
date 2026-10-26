@@ -1,0 +1,141 @@
+.install-banner {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 12px;
+    background: #f4c66a;
+    color: #102a25;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.ib-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #102a25;
+    color: #f4c66a;
+}
+
+.ib-text {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.25;
+}
+
+.ib-text span {
+    color: #3b4a43;
+}
+
+.ib-primary,
+.ib-later {
+    flex: none;
+    min-height: 2.4rem;
+    padding: 0 0.85rem;
+    border: 0;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.ib-primary {
+    background: #102a25;
+    color: #ffffff;
+}
+
+.ib-later {
+    background: transparent;
+    color: #102a25;
+    text-decoration: underline;
+    padding: 0 0.4rem;
+}
+
+@media (max-width: 520px) {
+    .install-banner {
+        flex-wrap: wrap;
+        gap: 0.4rem 0.6rem;
+    }
+
+    .ib-text {
+        flex-basis: calc(100% - 2.6rem);
+    }
+
+    .ib-text span {
+        display: none;
+    }
+
+    .ib-primary {
+        margin-left: 2.6rem;
+    }
+}
+
+.ib-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: end center;
+    padding: 1rem;
+    background: rgba(10, 24, 21, 0.72);
+}
+
+.ib-sheet {
+    width: min(28rem, 100%);
+    padding: 1rem 1.2rem;
+    border-radius: 18px;
+    background: #f8f6ee;
+    color: #1f2933;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 640px) {
+    .ib-overlay {
+        place-items: center;
+    }
+}
+
+.ib-sheet h3 {
+    margin: 0 0 0.6rem;
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #17352c;
+}
+
+.ib-steps {
+    margin: 0;
+    padding-left: 1.3rem;
+    line-height: 1.5;
+}
+
+.ib-steps li {
+    margin-bottom: 0.5rem;
+}
+
+.ib-share {
+    vertical-align: -5px;
+    color: #1f6f5f;
+}
+
+.ib-hint {
+    display: block;
+    font-size: 0.85rem;
+    color: #56645c;
+}
+
+.ib-note {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    color: #56645c;
+}
+
+.ib-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.8rem;
+}

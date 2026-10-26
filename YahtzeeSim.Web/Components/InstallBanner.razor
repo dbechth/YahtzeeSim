@@ -1,0 +1,106 @@
+@implements IDisposable
+@inject IJSRuntime JS
+
+@if (_state is { Installed: false } state && !_hidden && (state.CanPrompt || state.Platform != "desktop"))
+{
+    <aside class="install-banner" aria-label="Install the app">
+        <span class="ib-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v8.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L11 12.6V4a1 1 0 0 1 1-1zM5 17a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z" /></svg>
+        </span>
+        <p class="ib-text"><strong>Install YahtzeeSim</strong> <span>Full screen and offline with challenge notifications</span></p>
+        @if (state.CanPrompt)
+        {
+            <button type="button" class="ib-primary" @onclick="InstallAsync">Install</button>
+        }
+        else
+        {
+            <button type="button" class="ib-primary" @onclick="() => _showSteps = true">How to install</button>
+        }
+        <button type="button" class="ib-later" @onclick="() => _hidden = true">Not now</button>
+    </aside>
+}
+
+@if (_showSteps && _state is { } s)
+{
+    <div class="ib-overlay" @onclick="() => _showSteps = false">
+        <div class="ib-sheet" role="dialog" aria-modal="true" aria-labelledby="ib-title" @onclick:stopPropagation="true">
+            <h3 id="ib-title">Install YahtzeeSim</h3>
+            @if (s.Platform == "ios")
+            {
+                <ol class="ib-steps">
+                    <li>
+                        Tap the <strong>Share</strong> button
+                        <svg class="ib-share" viewBox="0 0 24 24" width="22" height="22" aria-label="Share icon"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M8 7l4-4 4 4M7 10H5.5A1.5 1.5 0 0 0 4 11.5v8A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H17" /></svg>
+                        <span class="ib-hint">Safari has it at the bottom on iPhone and at the top on iPad Chrome has it at the top right</span>
+                    </li>
+                    <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+                    <li>Tap <strong>Add</strong> then open YahtzeeSim from your Home Screen</li>
+                </ol>
+                <p class="ib-note">Challenge notifications on iPhone and iPad only work in the app opened from the Home Screen and need iOS 16.4 or later</p>
+            }
+            else
+            {
+                <ol class="ib-steps">
+                    <li>Open the browser menu <strong>⋮</strong> at the top right</li>
+                    <li>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong></li>
+                    <li>Open YahtzeeSim from your Home screen or app list</li>
+                </ol>
+            }
+            <div class="ib-actions">
+                <button type="button" class="ib-primary" @onclick="() => _showSteps = false">Done</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private sealed record InstallState(bool Installed, bool CanPrompt, string Platform);
+
+    private InstallState? _state;
+    private bool _hidden;
+    private bool _showSteps;
+    private DotNetObjectReference<InstallBanner>? _self;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _self = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("yahtzeeSimInstall.listen", _self);
+            await RefreshAsync();
+        }
+        catch (JSException)
+        {
+            // Without the helper the banner simply stays hidden.
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnInstallStateChanged() => await InvokeAsync(RefreshAsync);
+
+    private async Task RefreshAsync()
+    {
+        _state = await JS.InvokeAsync<InstallState>("yahtzeeSimInstall.state");
+        StateHasChanged();
+    }
+
+    private async Task InstallAsync()
+    {
+        try
+        {
+            await JS.InvokeAsync<string>("yahtzeeSimInstall.prompt");
+        }
+        catch (JSException)
+        {
+        }
+
+        await RefreshAsync();
+    }
+
+    public void Dispose() => _self?.Dispose();
+}

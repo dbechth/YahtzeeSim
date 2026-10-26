@@ -3,10 +3,13 @@
 @inject AccountService Account
 @inject ScoreQueue Queue
 @inject ActionLog Actions
+@inject ChallengeService Challenges
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 
 <div class="app-shell">
     <main>
+        <InstallBanner />
         @if (Account.State == AccountState.Loading)
         {
             <div class="gate"><p class="gate-lead" role="status">Checking sign in</p></div>
@@ -32,6 +35,17 @@
     protected override async Task OnInitializedAsync()
     {
         Account.Changed += OnAccountChanged;
+
+        // An invite link (?join=...) has to survive signing in, which leaves the page, so keep its token on the device.
+        var query = new Uri(Navigation.Uri).Query;
+        foreach (var part in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith("join=", StringComparison.Ordinal) && part.Length is > 5 and <= 69)
+            {
+                await Challenges.SavePendingJoinAsync(Uri.UnescapeDataString(part[5..]));
+            }
+        }
+
         await Account.InitializeAsync();
         await Queue.FlushAsync();
         await Actions.FlushAsync();
@@ -65,6 +79,7 @@
 
         await Queue.FlushAsync();
         await Actions.FlushAsync();
+        await Challenges.RefreshUnreadAsync();
     }
 
     private void OnAccountChanged() => _ = InvokeAsync(StateHasChanged);

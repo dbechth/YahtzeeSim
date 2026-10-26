@@ -114,6 +114,26 @@ button:disabled {
     padding: 0 0.5rem;
 }
 
+.challenges-btn {
+    position: relative;
+}
+
+.unread-dot {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #ff8a3d;
+    box-shadow: 0 0 0 2px var(--forest-dark);
+}
+
+.challenges-modal {
+    width: min(34rem, 100%);
+    padding-bottom: 0;
+}
+
 .dock-btn:hover {
     background: rgba(184, 239, 199, 0.14);
 }

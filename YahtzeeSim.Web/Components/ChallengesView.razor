@@ -1,0 +1,518 @@
+@implements IDisposable
+@inject ChallengeService Challenges
+@inject NotificationService Notifications
+@inject AccountService Account
+
+<h3 id="ch-title">@Heading</h3>
+
+<div class="ch-body">
+    @if (_view == View.List)
+    {
+        @Notice()
+        <div class="ch-row ch-top">
+            <button type="button" class="ch-primary" @onclick="StartCreate">New challenge</button>
+        </div>
+        @if (_list == null)
+        {
+            <p class="ch-message" role="status">@(_listError == null ? "Loading" : ErrorText(_listError))</p>
+        }
+        else if (_list.Count == 0)
+        {
+            <p class="ch-message">No challenges yet Start one and pick who to play against Everyone plays one game and the best score wins</p>
+        }
+        else
+        {
+            var open = _list.Where(c => c.IsOpen).ToList();
+            var done = _list.Where(c => !c.IsOpen).ToList();
+            @if (open.Count > 0)
+            {
+                <h4 class="ch-section">Open</h4>
+                <ul class="ch-list">
+                    @foreach (var c in open)
+                    {
+                        <li>@Card(c)</li>
+                    }
+                </ul>
+            }
+            @if (done.Count > 0)
+            {
+                <h4 class="ch-section">Finished</h4>
+                <ul class="ch-list">
+                    @foreach (var c in done)
+                    {
+                        <li>@Card(c)</li>
+                    }
+                </ul>
+            }
+        }
+        @NotificationRow()
+    }
+    else if (_view == View.Create)
+    {
+        <form class="ch-form" @onsubmit="CreateAsync">
+            <label for="ch-name">Name</label>
+            <input id="ch-name" type="text" maxlength="40" @bind="_title" @bind:event="oninput" />
+
+            <span class="ch-label" id="ch-mode-label">Game</span>
+            <div class="ch-seg" role="group" aria-labelledby="ch-mode-label">
+                <button type="button" class="@Seg(_mode == "FullSheet")" aria-pressed="@(_mode == "FullSheet" ? "true" : "false")" @onclick='() => _mode = "FullSheet"'>Full Sheet</button>
+                <button type="button" class="@Seg(_mode == "Single")" aria-pressed="@(_mode == "Single" ? "true" : "false")" @onclick='() => _mode = "Single"'>Single</button>
+            </div>
+
+            <span class="ch-label" id="ch-ends-label">Ends in</span>
+            <div class="ch-seg ch-wrap" role="group" aria-labelledby="ch-ends-label">
+                @foreach (var (label, hours) in Durations)
+                {
+                    <button type="button" class="@Seg(_hours == hours)" aria-pressed="@(_hours == hours ? "true" : "false")" @onclick="() => _hours = hours">@label</button>
+                }
+            </div>
+            <p class="ch-fine">Ends @FormatTime(DateTimeOffset.Now.AddHours(_hours)) or as soon as everyone has played</p>
+
+            <label for="ch-search">Players</label>
+            @Picker()
+            <p class="ch-fine">You can also share an invite link once it is created Anyone you send it to can join even if they are new</p>
+
+            @if (_formError != null)
+            {
+                <p class="ch-error" role="alert">@_formError</p>
+            }
+            <div class="ch-row">
+                <button type="submit" class="ch-primary" disabled="@_busy">Create challenge</button>
+                <button type="button" class="ch-secondary" @onclick="ShowListAsync">Cancel</button>
+            </div>
+        </form>
+    }
+    else if (_view == View.Detail)
+    {
+        @if (_detail == null)
+        {
+            <p class="ch-message" role="status">@(_detailError == null ? "Loading" : ErrorText(_detailError))</p>
+            <div class="ch-row">
+                <button type="button" class="ch-secondary" @onclick="ShowListAsync">Back</button>
+            </div>
+        }
+        else
+        {
+            var d = _detail;
+            var me = d.Me;
+            <p class="ch-meta">
+                <span class="ch-tag">@ModeName(d.Mode)</span>
+                <span>by @d.Creator</span>
+                <span>@(d.IsOpen ? "ends " + FormatTime(Time(d.Deadline)) : "finished")</span>
+            </p>
+
+            @if (_notice != null)
+            {
+                <p class="ch-ok" role="status">@_notice</p>
+            }
+
+            <table class="ch-table">
+                <caption class="ch-sr">Players and scores</caption>
+                <thead>
+                    <tr><th scope="col">#</th><th scope="col">Player</th><th scope="col" class="ch-num">Score</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in d.Players)
+                    {
+                        <tr class="@(p.IsMe ? "ch-me" : null)">
+                            <td>@(p.Rank?.ToString() ?? "")</td>
+                            <td>@p.Nickname@(p.IsMe ? " you" : null)</td>
+                            <td class="ch-num">@(p.Total?.ToString() ?? (d.IsOpen ? "to play" : "did not play"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @if (d.IsOpen && me?.Total == null)
+            {
+                <div class="ch-row">
+                    <button type="button" class="ch-primary ch-play" @onclick="() => OnPlay.InvokeAsync(d)">Play your @ModeName(d.Mode) game</button>
+                </div>
+                <p class="ch-fine">Your first finished game for this challenge counts It also counts on the leaderboard like any other game</p>
+            }
+            else if (d.IsOpen)
+            {
+                <p class="ch-fine">You have played Waiting for the others</p>
+            }
+
+            @if (d.IsOpen && d.InviteToken != null)
+            {
+                <div class="ch-row">
+                    <button type="button" class="ch-secondary" @onclick="ShareAsync">Share invite link</button>
+                    <button type="button" class="ch-secondary" @onclick="() => _inviting = !_inviting">Invite players</button>
+                </div>
+                @if (_inviting)
+                {
+                    @Picker()
+                    <div class="ch-row">
+                        <button type="button" class="ch-primary" disabled="@(_busy || _picked.Count == 0)" @onclick="InviteAsync">Send invites</button>
+                    </div>
+                }
+            }
+
+            @NotificationRow()
+
+            <div class="ch-row ch-bottom">
+                <button type="button" class="ch-secondary" @onclick="ShowListAsync">All challenges</button>
+                <button type="button" class="ch-link" @onclick="LeaveAsync">Leave challenge</button>
+            </div>
+        }
+    }
+</div>
+
+<div class="ch-actions">
+    <button type="button" class="ch-close" @onclick="() => OnClose.InvokeAsync()">Close</button>
+</div>
+
+@code {
+    private enum View { List, Create, Detail }
+
+    private static readonly (string Label, int Hours)[] Durations = [("3 hours", 3), ("1 day", 24), ("2 days", 48), ("3 days", 72), ("1 week", 168)];
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>Starts the player's game for this challenge.</summary>
+    [Parameter]
+    public EventCallback<ChallengeDetail> OnPlay { get; set; }
+
+    /// <summary>Opens straight to this challenge (from a notification or an invite link).</summary>
+    [Parameter]
+    public string? OpenChallengeId { get; set; }
+
+    /// <summary>Shown once at the top, e.g. why an invite link did not work.</summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    private View _view = View.List;
+    private List<ChallengeSummary>? _list;
+    private string? _listError;
+    private ChallengeDetail? _detail;
+    private string? _detailError;
+    private string? _notice;
+    private bool _busy;
+    private bool _inviting;
+
+    private string _title = "Full Sheet challenge";
+    private string _mode = "FullSheet";
+    private int _hours = 24;
+    private string? _formError;
+    private string _search = string.Empty;
+    private List<string> _matches = [];
+    private readonly List<string> _picked = [];
+    private CancellationTokenSource? _searchCts;
+
+    private PushState _push = PushState.Unavailable;
+    private bool _pushFailed;
+
+    private string Heading => _view switch
+    {
+        View.Create => "New challenge",
+        View.Detail when _detail != null => _detail.Title,
+        _ => "Challenges"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (OpenChallengeId != null)
+        {
+            await ShowDetailAsync(OpenChallengeId);
+        }
+        else
+        {
+            await ShowListAsync();
+        }
+
+        _push = await Notifications.GetStateAsync();
+    }
+
+    private RenderFragment Notice() => __builder =>
+    {
+        if (!string.IsNullOrEmpty(Message))
+        {
+            <p class="ch-error" role="alert">@Message</p>
+        }
+    };
+
+    private RenderFragment Card(ChallengeSummary c) => __builder =>
+    {
+        <button type="button" class="ch-card" @onclick="() => ShowDetailAsync(c.Id)">
+            <span class="ch-card-top">
+                <strong>@c.Title</strong>
+                @if (c.Unread)
+                {
+                    <span class="ch-dot" aria-label="New"></span>
+                }
+            </span>
+            <span class="ch-card-sub">
+                @ModeName(c.Mode) by @c.Creator
+                @(c.IsOpen ? " ends " + FormatTime(Time(c.Deadline)) : string.Empty)
+            </span>
+            <span class="ch-card-sub">
+                @c.Entries of @c.Players played
+                @if (c.MyTotal is int mine)
+                {
+                    <span class="ch-score">You @mine</span>
+                }
+                else if (c.IsOpen)
+                {
+                    <span class="ch-todo">Your turn</span>
+                }
+            </span>
+        </button>
+    };
+
+    private RenderFragment Picker() => __builder =>
+    {
+        <input id="ch-search" type="search" placeholder="Search by nickname" autocomplete="off" autocapitalize="off" spellcheck="false"
+               value="@_search" @oninput="OnSearchInput" />
+        @if (_picked.Count > 0)
+        {
+            <div class="ch-chips">
+                @foreach (var name in _picked)
+                {
+                    <button type="button" class="ch-chip" aria-label="Remove @name" @onclick="() => _picked.Remove(name)">@name <span aria-hidden="true">&times;</span></button>
+                }
+            </div>
+        }
+        @if (_matches.Count > 0)
+        {
+            <ul class="ch-matches">
+                @foreach (var name in _matches.Where(m => !_picked.Contains(m, StringComparer.OrdinalIgnoreCase)))
+                {
+                    <li><button type="button" @onclick="() => Pick(name)">@name</button></li>
+                }
+            </ul>
+        }
+    };
+
+    private RenderFragment NotificationRow() => __builder =>
+    {
+        switch (_push)
+        {
+            case PushState.On:
+                <p class="ch-push">Notifications are on for this device <button type="button" class="ch-link" @onclick="TurnOffAsync">Turn off</button></p>
+                break;
+            case PushState.Off:
+                <div class="ch-push ch-push-ask">
+                    <span>Get a notification when you are challenged and when others play</span>
+                    <button type="button" class="ch-primary" @onclick="TurnOnAsync">Turn on notifications</button>
+                    @if (_pushFailed)
+                    {
+                        <span class="ch-error" role="alert">Notifications could not be turned on Try again in a moment</span>
+                    }
+                </div>
+                break;
+            case PushState.NeedsInstall:
+                <p class="ch-push">To get notifications on iPhone or iPad add YahtzeeSim to your Home Screen first Tap Share then Add to Home Screen and open it from there</p>
+                break;
+            case PushState.Blocked:
+                <p class="ch-push">Notifications are blocked for YahtzeeSim Turn them on in your browser or phone settings</p>
+                break;
+        }
+    };
+
+    private async Task ShowListAsync()
+    {
+        _view = View.List;
+        _detail = null;
+        _notice = null;
+        _listError = null;
+        _list = null;
+        StateHasChanged();
+        var result = await Challenges.ListAsync();
+        _list = result.Value;
+        _listError = result.Error;
+    }
+
+    private async Task ShowDetailAsync(string id)
+    {
+        _view = View.Detail;
+        _detail = null;
+        _detailError = null;
+        _inviting = false;
+        ResetPicker();
+        StateHasChanged();
+        var result = await Challenges.GetAsync(id);
+        _detail = result.Value;
+        _detailError = result.Error;
+        if (_detail != null)
+        {
+            await Challenges.MarkSeenAsync(id);
+        }
+    }
+
+    private void StartCreate()
+    {
+        _view = View.Create;
+        _title = "Full Sheet challenge";
+        _mode = "FullSheet";
+        _hours = 24;
+        _formError = null;
+        ResetPicker();
+    }
+
+    private async Task CreateAsync()
+    {
+        string title = _title.Trim();
+        if (title.Length == 0)
+        {
+            _formError = "Give the challenge a name";
+            return;
+        }
+
+        _busy = true;
+        _formError = null;
+        var result = await Challenges.CreateAsync(title, _mode, DateTimeOffset.Now.AddHours(_hours), _picked);
+        _busy = false;
+        if (result.Value is not { } created)
+        {
+            _formError = ErrorText(result.Error);
+            return;
+        }
+
+        await ShowDetailAsync(created.Id);
+        _notice = created.Missing.Count > 0
+            ? $"Challenge created but these players were not found {string.Join(" ", created.Missing)}"
+            : _picked.Count > 0 ? "Challenge created and players invited" : "Challenge created Share the invite link to add players";
+    }
+
+    private async Task InviteAsync()
+    {
+        if (_detail == null || _picked.Count == 0)
+        {
+            return;
+        }
+
+        _busy = true;
+        var result = await Challenges.InviteAsync(_detail.Id, _picked);
+        _busy = false;
+        string id = _detail.Id;
+        await ShowDetailAsync(id);
+        _notice = result.Ok ? "Invites sent" : ErrorText(result.Error);
+    }
+
+    private async Task ShareAsync()
+    {
+        if (_detail?.InviteToken is not { } token)
+        {
+            return;
+        }
+
+        string url = Challenges.InviteUrl(token);
+        string outcome = await Notifications.ShareAsync(_detail.Title, $"{Account.Nickname} challenged you to a game of YahtzeeSim", url);
+        _notice = outcome switch
+        {
+            "copied" => "Invite link copied Paste it into a message",
+            "failed" => "Could not share the link " + url,
+            _ => null
+        };
+    }
+
+    private async Task LeaveAsync()
+    {
+        if (_detail != null && await Challenges.LeaveAsync(_detail.Id))
+        {
+            await ShowListAsync();
+            await Challenges.RefreshUnreadAsync();
+        }
+    }
+
+    private async Task TurnOnAsync()
+    {
+        _push = await Notifications.TurnOnAsync();
+        _pushFailed = _push == PushState.Off;
+        if (_push == PushState.On)
+        {
+            _notice = "Notifications are on";
+        }
+    }
+
+    private async Task TurnOffAsync() => _push = await Notifications.TurnOffAsync();
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? string.Empty;
+        _searchCts?.Cancel();
+        var cts = _searchCts = new CancellationTokenSource();
+        if (_search.Trim().Length == 0)
+        {
+            _matches = [];
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(250, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        var found = await Challenges.SearchPlayersAsync(_search);
+        if (!cts.IsCancellationRequested)
+        {
+            _matches = found;
+            StateHasChanged();
+        }
+    }
+
+    private void Pick(string name)
+    {
+        if (!_picked.Contains(name, StringComparer.OrdinalIgnoreCase) && _picked.Count < 19)
+        {
+            _picked.Add(name);
+        }
+
+        _search = string.Empty;
+        _matches = [];
+    }
+
+    private void ResetPicker()
+    {
+        _picked.Clear();
+        _matches = [];
+        _search = string.Empty;
+    }
+
+    private static string Seg(bool active) => active ? "ch-seg-btn active" : "ch-seg-btn";
+
+    private static string ModeName(string mode) => mode == "FullSheet" ? "Full Sheet" : "Single";
+
+    private static DateTimeOffset Time(long ms) => DateTimeOffset.FromUnixTimeMilliseconds(ms).ToLocalTime();
+
+    private static string FormatTime(DateTimeOffset t)
+    {
+        var now = DateTimeOffset.Now;
+        string clock = t.ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture);
+        if (t.Date == now.Date)
+        {
+            return "today " + clock;
+        }
+
+        if (t.Date == now.Date.AddDays(1))
+        {
+            return "tomorrow " + clock;
+        }
+
+        return t.ToString("ddd MMM d", System.Globalization.CultureInfo.InvariantCulture) + " " + clock;
+    }
+
+    private static string ErrorText(string? error) => error switch
+    {
+        "offline" => "Challenges need a connection",
+        "not_found" => "That challenge is not available It may have ended or you are not in it",
+        "challenge_finished" => "That challenge has already finished",
+        "challenge_full" => "That challenge is full",
+        "rate_limited" => "You have started a lot of challenges today Try again tomorrow",
+        "too_many_players" => "A challenge can have up to 20 players",
+        "invalid_title" => "Use letters numbers and simple punctuation for the name",
+        "deadline_out_of_range" => "Pick an end time between one hour and one week from now",
+        "nickname_required" => "Pick a nickname first",
+        "signed_out" => "Sign in again to use challenges",
+        _ => "Something went wrong Try again"
+    };
+
+    public void Dispose() => _searchCts?.Cancel();
+}

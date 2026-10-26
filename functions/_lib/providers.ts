@@ -4,6 +4,10 @@ export interface Env {
   DB: D1Database;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /** Web Push (VAPID) keys, see scripts/new-vapid-keys.ps1. Without them no notifications are sent. */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 }
 
 export interface AuthorizeRequest {

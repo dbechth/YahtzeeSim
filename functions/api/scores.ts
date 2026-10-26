@@ -1,8 +1,10 @@
+import { recordEntry } from "../_lib/challenges";
 import { getSessionUser, isSafeMutation, json } from "../_lib/http";
+import { notify } from "../_lib/notify";
 import type { Env } from "../_lib/providers";
 import { MAX_SCORES_PER_HOUR, validateScoreSubmission } from "../_lib/validate";
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   if (!isSafeMutation(request)) {
     return json({ error: "bad_request" }, 400);
   }
@@ -35,6 +37,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   )
     .bind(user.id, gameId, mode, total, now)
     .run();
+
+  // A challenge game is a normal score that is also linked to the challenge (once, while it is open).
+  if (submission.value.challengeId) {
+    const entry = await recordEntry(env.DB, { id: user.id, nickname: user.nickname }, submission.value.challengeId, { gameId, mode, total }, now);
+    if (entry.events.length > 0) {
+      waitUntil(notify(env, entry.events));
+    }
+    return json({ accepted: true, challenge: { recorded: entry.recorded, reason: entry.reason ?? null } });
+  }
 
   return json({ accepted: true });
 };

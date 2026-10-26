@@ -12,6 +12,7 @@ on:
       - YahtzeeSim.Analysis.Tests/**
       - functions/**
       - functions-tests/**
+      - workers/**
       - migrations/**
       - wrangler.toml
       - package.json
@@ -145,3 +146,19 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.120.0"
           command: pages deploy ${{ env.PUBLISH_DIR }} --project-name ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }} --commit-dirty=true
+
+      # Challenge deadlines and reminders. Needs 'Workers Scripts: Edit' on the API token; a failure here only warns,
+      # because the app itself is already deployed (challenges then finish when everyone has played, without reminders).
+      - name: Deploy challenge scheduler Worker
+        id: cron_worker
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.120.0"
+          command: deploy --config workers/challenge-cron/wrangler.toml
+
+      - name: Warn if the scheduler Worker was not deployed
+        if: steps.cron_worker.outcome == 'failure'
+        run: echo "::warning::The challenge scheduler Worker did not deploy. Add 'Workers Scripts - Edit' to CLOUDFLARE_API_TOKEN; until then challenges end only when everyone has played and no reminders are sent."

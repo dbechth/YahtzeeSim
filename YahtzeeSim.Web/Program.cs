@@ -13,5 +13,7 @@ builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<ScoreQueue>();
 builder.Services.AddScoped<ActionLog>();
 builder.Services.AddScoped<StrategyService>();
+builder.Services.AddScoped<ChallengeService>();
+builder.Services.AddScoped<NotificationService>();
 
 await builder.Build().RunAsync();

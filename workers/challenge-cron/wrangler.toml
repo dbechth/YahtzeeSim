@@ -1,0 +1,15 @@
+# Scheduled Worker for challenges: closes challenges at their deadline (sending results) and sends reminders.
+# Deployed by .github/workflows/deploy-cloudflare-pages.yml; its VAPID secrets are set by scripts/setup-push.ps1.
+name = "yahtzeesim-challenges"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+workers_dev = false
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+# Same database as the Pages app (see the root wrangler.toml).
+[[d1_databases]]
+binding = "DB"
+database_name = "yahtzeesim"
+database_id = "a7fdfecc-c70b-497a-9b42-39b2c4d7b10b"
