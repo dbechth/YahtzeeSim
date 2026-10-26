@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { decideRequest, GROUP_MAX_MEMBERS, requestToJoin } from "../functions/_lib/groups";
+import { addMember, decideRequest, GROUP_MAX_MEMBERS, requestToJoin } from "../functions/_lib/groups";
 import { messageFor } from "../functions/_lib/notify";
 import { onRequestGet as getChallenges, onRequestPost as createChallenge } from "../functions/api/challenges/index";
 import { onRequestGet as getChallenge } from "../functions/api/challenges/[id]";
 import { onRequestPost as inviteToChallenge } from "../functions/api/challenges/[id]/invite";
 import { onRequestGet as getGroup } from "../functions/api/groups/[id]";
 import { onRequestPost as join } from "../functions/api/groups/[id]/join";
+import { onRequestPost as addToGroup } from "../functions/api/groups/[id]/members";
 import { onRequestPost as leave } from "../functions/api/groups/[id]/leave";
 import { onRequestPost as remove } from "../functions/api/groups/[id]/remove";
 import { onRequestPost as decide } from "../functions/api/groups/[id]/requests";
@@ -371,5 +372,47 @@ describe("inviting groups to a challenge", () => {
     expect(created.status).toBe(201);
     const over = await call(inviteToChallenge, env(), request(gaye, "POST", "/", { nicknames: [extras[0].nickname] }), { id: String(created.body.id) });
     expect(over.body.error).toBe("too_many_players");
+  });
+});
+
+describe("admins adding players", () => {
+  it("puts a player straight in and tells them, with no approval needed", async () => {
+    const id = String((await newGroup(gaye)).body.id);
+    const added = await post(addToGroup, gaye, id, { nickname: "nicky" });
+    expect(added.status).toBe(200);
+    expect(added.body).toEqual({ ok: true, added: true });
+    expect((await detail(nicky, id)).body.myRole).toBe("member");
+
+    const result = await addMember(db, { id: gaye.id }, id, "Doug", Date.now());
+    expect(result.ok && result.event).toEqual({ kind: "group_approved", groupId: id, name: "Family", userIds: [doug.id] });
+  });
+
+  it("accepts a waiting request, and does nothing for someone already in", async () => {
+    const id = await familyWithDoug();
+    await post(join, nicky, id);
+    expect((await post(addToGroup, gaye, id, { nickname: "Nicky" })).body.added).toBe(true);
+    expect((await detail(gaye, id)).body.requests).toEqual([]);
+    expect((await post(addToGroup, gaye, id, { nickname: "Doug" })).body).toEqual({ ok: true, added: false });
+  });
+
+  it("only lets admins add, and only players that exist", async () => {
+    const id = await familyWithDoug();
+    expect((await post(addToGroup, doug, id, { nickname: "Nicky" })).status).toBe(403);
+    expect((await post(addToGroup, stranger, id, { nickname: "Nicky" })).status).toBe(404);
+    expect((await post(addToGroup, gaye, id, { nickname: "Nobody" })).body.error).toBe("user_not_found");
+    expect((await post(addToGroup, gaye, id, {})).status).toBe(400);
+    expect((await post(addToGroup, null, id, { nickname: "Nicky" })).status).toBe(401);
+    expect((await detail(nicky, id)).status).toBe(404);
+  });
+
+  it("stops at the member limit", async () => {
+    const id = String((await newGroup(gaye)).body.id);
+    for (let i = 0; i < GROUP_MAX_MEMBERS - 1; i++) {
+      const player = await addUser(db, `Player${i}`);
+      expect((await post(addToGroup, gaye, id, { nickname: player.nickname })).status).toBe(200);
+    }
+    const full = await post(addToGroup, gaye, id, { nickname: "Stranger" });
+    expect(full.status).toBe(409);
+    expect(full.body.error).toBe("group_full");
   });
 });

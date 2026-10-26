@@ -312,6 +312,21 @@
                     }
                 </ul>
             }
+            @if (g.IsAdmin)
+            {
+                <h4 class="ch-section">Add a player</h4>
+                <input id="ch-add-search" type="search" placeholder="Search by nickname" autocomplete="off" autocapitalize="off" spellcheck="false"
+                       aria-label="Search players to add" value="@_search" @oninput="OnSearchInput" />
+                @if (_matches.Count > 0)
+                {
+                    <ul class="ch-matches">
+                        @foreach (var name in _matches.Where(n => !g.Members.Any(m => string.Equals(m.Nickname, n, StringComparison.OrdinalIgnoreCase))))
+                        {
+                            <li><button type="button" disabled="@_busy" aria-label="Add @name to the group" @onclick="() => AddMemberAsync(name)">@name</button></li>
+                        }
+                    </ul>
+                }
+            }
             <h4 class="ch-section">Members</h4>
             <ul class="ch-list">
                 @foreach (var m in g.Members)
@@ -769,6 +784,8 @@
     {
         _view = View.GroupDetail;
         _group = null;
+        _search = string.Empty;
+        _matches = [];
         _groupError = null;
         _notice = null;
         _confirm = null;
@@ -876,6 +893,22 @@
         _busy = false;
         await ShowGroupAsync(id);
         _notice = error != null ? GroupErrorText(error) : approve ? $"{nickname} is now in the group" : $"{nickname} was declined";
+    }
+
+    private async Task AddMemberAsync(string nickname)
+    {
+        if (_group == null)
+        {
+            return;
+        }
+
+        string id = _group.Id;
+        _busy = true;
+        var result = await Challenges.AddGroupMemberAsync(id, nickname);
+        _busy = false;
+        await ShowGroupAsync(id);
+        _notice = result.Error != null ? GroupErrorText(result.Error)
+            : result.Value ? $"{nickname} was added to the group" : $"{nickname} is already in the group";
     }
 
     private async Task SetRoleAsync(GroupMember member)
@@ -994,6 +1027,7 @@
         "offline" => "Groups need a connection",
         "not_found" => "That group is not available You may not be in it any more",
         "forbidden" => "Only group admins can do that",
+        "user_not_found" => "No player has that nickname",
         "name_taken" => "A group with that name already exists",
         "invalid_name" => "Use letters numbers and simple punctuation for the name",
         "group_full" => "That group is full It can have up to 20 members",

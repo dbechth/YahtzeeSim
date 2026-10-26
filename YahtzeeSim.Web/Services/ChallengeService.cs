@@ -75,6 +75,7 @@ public sealed class ChallengeService(HttpClient http, IJSRuntime js, AccountServ
     private sealed record GroupSearchResponse(List<GroupSearchResult> Groups);
 
     private sealed record IdResponse(string Id);
+    private sealed record AddedResponse(bool Added);
 
     private sealed record PlayersResponse(List<string> Players);
 
@@ -185,6 +186,13 @@ public sealed class ChallengeService(HttpClient http, IJSRuntime js, AccountServ
         string? error = (await SendAsync<JsonElement>(HttpMethod.Post, GroupUrl(id) + "/requests", new { nickname, approve })).Error;
         await RefreshUnreadAsync();
         return error;
+    }
+
+    /// <summary>An admin adds a player to the group with no approval step. Value is false when they were already in.</summary>
+    public async Task<ApiResult<bool>> AddGroupMemberAsync(string id, string nickname)
+    {
+        var result = await SendAsync<AddedResponse>(HttpMethod.Post, GroupUrl(id) + "/members", new { nickname });
+        return new(result.Value?.Added ?? false, result.Error);
     }
 
     public async Task<string?> SetGroupRoleAsync(string id, string nickname, string role) =>

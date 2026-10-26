@@ -45,7 +45,7 @@ Terminology: **Card** = one 13-category scoresheet (a "game" column G1–G6). **
 | UR-20 | As a player I get a short, friendly story of my play style (what I go for with each kind of roll, how I fill the sheet, highlights and one tip) and a play-style badge shown next to my name on the leaderboard. As the owner I can preview and tune both, and read every player's full report, in a Windows research app. |
 | UR-21 | I can challenge selected players (or anyone I send a link to) to one game, and only the players in the challenge are notified on their iPhone or Android phone and can see the results. Challenge games also count on the leaderboard as normal games. |
 | UR-22 | The app tells me I can install it on my phone like an app, with the steps for my device, until I have done so. |
-| UR-23 | As a player I can join groups (a group admin approves new members), a group admin can make other members admins, and I can invite a whole group I am in to a challenge. |
+| UR-23 | As a player I can join groups (a group admin approves new members, or adds people directly), a group admin can make other members admins, and I can invite a whole group I am in to a challenge. |
 
 ## 3. Software requirements
 
@@ -266,6 +266,7 @@ Players form groups. Joining is by request and a group admin approves it. Rules 
 | SW-GRP-04 | A group admin shall make any member an admin and make an admin a plain member again (`POST /api/groups/:id/role`), and remove other members. A group always keeps at least one admin: the last admin cannot step down or leave while others remain, and a group whose only member leaves is deleted. Plain members cannot do any of this (403). | [role.ts](../functions/api/groups/%5Bid%5D/role.ts), [remove.ts](../functions/api/groups/%5Bid%5D/remove.ts), [groups.ts](../functions/_lib/groups.ts) | UR-23 | ✅ |
 | SW-GRP-05 | A player shall invite whole groups they are an active member of when creating a challenge and later (`groupIds`, up to 5), from the picker or from a group's Challenge this group button. Every active member is added and notified like an invited player, those already in the challenge are skipped, and the 20 player limit still applies. Groups the player is not in are rejected (404) without revealing anything about them. | [challenges.ts](../functions/_lib/challenges.ts), [invite.ts](../functions/api/challenges/%5Bid%5D/invite.ts), [ChallengesView.razor](../YahtzeeSim.Web/Components/ChallengesView.razor) | UR-23 | ✅ |
 | SW-GRP-06 | Group admins shall be told when someone asks to join (a notification that opens the group, and a count on the Groups button and the top-bar dot) and the player when they are approved. | [notify.ts](../functions/_lib/notify.ts), [challenges/index.ts](../functions/api/challenges/index.ts), [ChallengeService.cs](../YahtzeeSim.Web/Services/ChallengeService.cs) | UR-23 | ✅ |
+| SW-GRP-07 | A group admin shall add a player to the group directly by nickname (`POST /api/groups/:id/members`), with no approval step. If that player had asked to join, the request is accepted; if they are already in nothing changes. The member limit is checked atomically, unknown nicknames get 404, plain members get 403, and the added player is notified. | [members.ts](../functions/api/groups/%5Bid%5D/members.ts), [groups.ts](../functions/_lib/groups.ts) | UR-23 | ✅ |
 ## 4. Traceability matrix (UR → SW)
 
 | UR | Software requirements |
@@ -292,7 +293,7 @@ Players form groups. Joining is by request and a group admin approves it. Rules 
 | UR-20 Play-style story and badge | ANA-10, ANA-12 … ANA-17 |
 | UR-21 Challenges and notifications | CHL-01 … CHL-08, PSH-01 … PSH-04, LDB-04 |
 | UR-22 Install prompt | PLT-04, PLT-08 |
-| UR-23 Groups | GRP-01 … GRP-06 |
+| UR-23 Groups | GRP-01 … GRP-07 |
 
 ## 5. Remaining work
 

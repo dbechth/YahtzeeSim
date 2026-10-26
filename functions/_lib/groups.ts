@@ -17,7 +17,7 @@ export type GroupEvent =
   | { kind: "group_request"; groupId: string; name: string; nickname: string; userIds: string[] }
   | { kind: "group_approved"; groupId: string; name: string; userIds: string[] };
 
-export type GroupError = "not_found" | "forbidden" | "name_taken" | "group_full" | "rate_limited" | "too_many_requests" | "last_admin" | "cannot_remove_self";
+export type GroupError = "not_found" | "user_not_found" | "forbidden" | "name_taken" | "group_full" | "rate_limited" | "too_many_requests" | "last_admin" | "cannot_remove_self";
 
 interface GroupRow {
   id: string;
@@ -267,6 +267,54 @@ export async function decideRequest(
     return { ok: false, error: "group_full" };
   }
   return { ok: true, event: { kind: "group_approved", groupId, name: allowed.group.name, userIds: [target.id] } };
+}
+
+/**
+ * An admin adds a player straight into the group by nickname, with no approval step. If the player had asked to join,
+ * that request is accepted. `added` is false when they were already a member. The player is notified.
+ */
+export async function addMember(
+  db: D1Database,
+  admin: { id: string },
+  groupId: string,
+  nickname: string,
+  now: number,
+): Promise<{ ok: true; added: boolean; event: GroupEvent | null } | { ok: false; error: GroupError }> {
+  const allowed = await requireAdmin(db, admin.id, groupId);
+  if (!allowed.ok) {
+    return allowed;
+  }
+  const target = await db.prepare("SELECT id FROM users WHERE nickname = ?1").bind(nickname).first<{ id: string }>();
+  if (!target) {
+    return { ok: false, error: "user_not_found" };
+  }
+  const existing = await membership(db, target.id, groupId);
+  if (existing?.status === "active") {
+    return { ok: true, added: false, event: null };
+  }
+
+  // The capacity check is part of the statement so two admins adding at once cannot overfill the group.
+  const result = existing
+    ? await db
+        .prepare(
+          `UPDATE group_members SET status = 'active', joined_at = ?3
+           WHERE group_id = ?1 AND user_id = ?2 AND status = 'pending'
+             AND (SELECT COUNT(*) FROM group_members WHERE group_id = ?1 AND status = 'active') < ?4`,
+        )
+        .bind(groupId, target.id, now, GROUP_MAX_MEMBERS)
+        .run()
+    : await db
+        .prepare(
+          `INSERT INTO group_members (group_id, user_id, role, status, requested_at, joined_at)
+           SELECT ?1, ?2, 'member', 'active', ?3, ?3
+           WHERE (SELECT COUNT(*) FROM group_members WHERE group_id = ?1 AND status = 'active') < ?4`,
+        )
+        .bind(groupId, target.id, now, GROUP_MAX_MEMBERS)
+        .run();
+  if ((result.meta?.changes ?? 0) === 0) {
+    return { ok: false, error: "group_full" };
+  }
+  return { ok: true, added: true, event: { kind: "group_approved", groupId, name: allowed.group.name, userIds: [target.id] } };
 }
 
 /** Makes a member an admin or an admin a plain member again. A group always keeps at least one admin. */

@@ -23,7 +23,7 @@ export async function groupUser(request: Request, env: Env, mutation: boolean): 
 }
 
 export function groupError(error: GroupError | string): Response {
-  const status = error === "not_found" ? 404 : error === "forbidden" ? 403 : error === "rate_limited" || error === "too_many_requests" ? 429 : 409;
+  const status = error === "not_found" || error === "user_not_found" ? 404 : error === "forbidden" ? 403 : error === "rate_limited" || error === "too_many_requests" ? 429 : 409;
   return json({ error }, status);
 }
 
