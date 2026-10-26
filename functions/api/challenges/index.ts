@@ -1,15 +1,19 @@
 import { createChallenge, listChallenges, validateNewChallenge } from "../../_lib/challenges";
+import { pendingRequestCount } from "../../_lib/groups";
 import { getSessionUser, isSafeMutation, json } from "../../_lib/http";
 import { notify } from "../../_lib/notify";
 import type { Env } from "../../_lib/providers";
 
-/** The signed-in player's challenges (open first, then recent finished ones). */
+/** The signed-in player's challenges (open first, then recent finished ones) and how many group join requests await their approval. */
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const user = await getSessionUser(request, env);
   if (!user) {
     return json({ error: "unauthorized" }, 401);
   }
-  return json({ challenges: await listChallenges(env.DB, user.id, Date.now()) });
+  return json({
+    challenges: await listChallenges(env.DB, user.id, Date.now()),
+    pendingRequests: await pendingRequestCount(env.DB, user.id),
+  });
 };
 
 /** Creates a challenge and invites players by nickname. Returns the invite link token for sharing. */
@@ -33,7 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   const created = await createChallenge(env.DB, { id: user.id, nickname: user.nickname }, input.value, now);
   if (!created.ok) {
-    return json({ error: created.error }, created.error === "rate_limited" ? 429 : 400);
+    return json({ error: created.error }, created.error === "rate_limited" ? 429 : created.error === "group_not_found" ? 404 : 400);
   }
   if (created.event) {
     waitUntil(notify(env, [created.event]));

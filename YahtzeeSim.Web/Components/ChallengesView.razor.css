@@ -343,3 +343,72 @@ input[type="search"] {
     background: var(--paper);
     border-top: 1px solid var(--line);
 }
+
+.ch-count {
+    display: inline-block;
+    min-width: 1.2rem;
+    margin-left: 0.3rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: #d9480f;
+    color: #ffffff;
+    font-size: 0.78rem;
+    text-align: center;
+}
+
+.ch-found {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--ink);
+}
+
+.ch-found.ch-me {
+    background: rgba(184, 239, 199, 0.45);
+}
+
+.ch-found .ch-tag {
+    margin-left: 0.3rem;
+    font-size: 0.75rem;
+}
+
+.ch-found-list {
+    margin-top: 0.45rem;
+}
+
+.ch-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.ch-small {
+    min-height: 2.25rem;
+    padding: 0.25rem 0.75rem;
+    border: 0;
+    border-radius: 8px;
+    background: #e4e6dc;
+    color: var(--forest);
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.ch-small-primary {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.ch-small-danger {
+    background: #fbe3df;
+    color: #8f1d1d;
+}
+
+.ch-small:disabled {
+    opacity: 0.5;
+}

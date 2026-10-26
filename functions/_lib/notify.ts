@@ -1,4 +1,5 @@
 import type { ChallengeEvent } from "./challenges";
+import type { GroupEvent } from "./groups";
 import type { Env } from "./providers";
 import { sendPush, type VapidKeys } from "./webpush";
 
@@ -12,7 +13,15 @@ export interface PushMessage {
   tag: string;
 }
 
-export function messageFor(event: ChallengeEvent): PushMessage {
+export function messageFor(event: ChallengeEvent | GroupEvent): PushMessage {
+  if (event.kind === "group_request" || event.kind === "group_approved") {
+    const groupUrl = `/?group=${encodeURIComponent(event.groupId)}`;
+    const groupTag = `group-${event.groupId}`;
+    return event.kind === "group_request"
+      ? { title: event.name, body: `${event.nickname} asked to join Tap to approve`, url: groupUrl, tag: groupTag }
+      : { title: event.name, body: "You are in Tap to see the group", url: groupUrl, tag: groupTag };
+  }
+
   const url = `/?challenge=${encodeURIComponent(event.challengeId)}`;
   const tag = `challenge-${event.challengeId}`;
   switch (event.kind) {
@@ -47,7 +56,7 @@ export function vapidKeys(env: Pick<Env, "VAPID_PUBLIC_KEY" | "VAPID_PRIVATE_KEY
 }
 
 /** Sends each event to every device of its players. Quietly does nothing until the VAPID secrets are configured. */
-export async function notify(env: Env, events: ChallengeEvent[], fetchFn: typeof fetch = fetch): Promise<number> {
+export async function notify(env: Env, events: (ChallengeEvent | GroupEvent)[],  fetchFn: typeof fetch = fetch): Promise<number> {
   let sent = 0;
   for (const event of events) {
     sent += await pushToUsers(env, event.userIds, messageFor(event), fetchFn);

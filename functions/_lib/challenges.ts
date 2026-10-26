@@ -1,4 +1,5 @@
 import { randomToken } from "./crypto";
+import { membersOfGroups, parseGroupIds } from "./groups";
 import type { GameMode } from "./validate";
 import { parseMode } from "./validate";
 
@@ -19,6 +20,8 @@ export interface NewChallenge {
   mode: GameMode;
   deadline: number;
   nicknames: string[];
+  /** Groups whose members are all invited; the creator has to be in each one. */
+  groupIds: string[];
 }
 
 export function isChallengeId(value: unknown): value is string {
@@ -29,7 +32,7 @@ export function validateNewChallenge(body: unknown, now: number): { ok: true; va
   if (typeof body !== "object" || body === null) {
     return { ok: false, error: "invalid_body" };
   }
-  const { title, mode, deadline, nicknames } = body as Record<string, unknown>;
+  const { title, mode, deadline, nicknames, groupIds } = body as Record<string, unknown>;
   const parsedMode = parseMode(mode);
   if (!parsedMode) {
     return { ok: false, error: "invalid_mode" };
@@ -52,7 +55,11 @@ export function validateNewChallenge(body: unknown, now: number): { ok: true; va
   if (unique.length > CHALLENGE_MAX_PLAYERS - 1) {
     return { ok: false, error: "too_many_players" };
   }
-  return { ok: true, value: { title: cleanTitle, mode: parsedMode, deadline, nicknames: unique } };
+  const groups = parseGroupIds(groupIds);
+  if (!groups) {
+    return { ok: false, error: "invalid_groups" };
+  }
+  return { ok: true, value: { title: cleanTitle, mode: parsedMode, deadline, nicknames: unique, groupIds: groups } };
 }
 
 export type ChallengeStatus = "open" | "finished";
@@ -94,8 +101,15 @@ export async function createChallenge(
   }
 
   const found = await findUsersByNickname(db, input.nicknames);
-  const invited = found.filter((u) => u.id !== creator.id);
+  const groupMembers = await membersOfGroups(db, creator.id, input.groupIds);
+  if (!groupMembers) {
+    return { ok: false, error: "group_not_found" };
+  }
+  const invited = uniqueUsers([...found, ...groupMembers]).filter((u) => u.id !== creator.id);
   const missing = input.nicknames.filter((n) => !found.some((u) => u.nickname.toLowerCase() === n.toLowerCase()));
+  if (invited.length + 1 > CHALLENGE_MAX_PLAYERS) {
+    return { ok: false, error: "too_many_players" };
+  }
 
   const id = randomToken(16);
   const inviteToken = randomToken(24);
@@ -126,6 +140,7 @@ export async function invitePlayers(
   inviter: { id: string; nickname: string },
   challengeId: string,
   nicknames: string[],
+  groupIds: string[],
   now: number,
 ): Promise<{ ok: true; added: string[]; missing: string[]; event: ChallengeEvent | null } | { ok: false; error: string }> {
   const challenge = await getChallengeForPlayer(db, inviter.id, challengeId);
@@ -138,7 +153,11 @@ export async function invitePlayers(
 
   const players = await activePlayers(db, challengeId);
   const found = await findUsersByNickname(db, nicknames);
-  const toAdd = found.filter((u) => !players.some((p) => p.user_id === u.id));
+  const groupMembers = await membersOfGroups(db, inviter.id, groupIds);
+  if (!groupMembers) {
+    return { ok: false, error: "group_not_found" };
+  }
+  const toAdd = uniqueUsers([...found, ...groupMembers]).filter((u) => !players.some((p) => p.user_id === u.id));
   const missing = nicknames.filter((n) => !found.some((u) => u.nickname.toLowerCase() === n.toLowerCase()));
   if (players.length + toAdd.length > CHALLENGE_MAX_PLAYERS) {
     return { ok: false, error: "too_many_players" };
@@ -523,6 +542,10 @@ async function activePlayers(db: D1Database, challengeId: string): Promise<{ use
     .bind(challengeId)
     .all<{ user_id: string }>();
   return rows.results;
+}
+
+function uniqueUsers(users: { id: string; nickname: string }[]): { id: string; nickname: string }[] {
+  return [...new Map(users.map((u) => [u.id, u])).values()];
 }
 
 async function findUsersByNickname(db: D1Database, nicknames: string[]): Promise<{ id: string; nickname: string }[]> {

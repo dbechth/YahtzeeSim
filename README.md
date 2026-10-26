@@ -5,7 +5,7 @@ Yahtzee simulator delivered as one web app (Blazor WebAssembly PWA):
 - `YahtzeeSim.Web`: the web front end
 - `YahtzeeSim.Engine`: the single game engine (no UI dependencies)
 - `YahtzeeSim.Engine.Tests`: engine unit tests (`dotnet test`)
-- `functions/`, `migrations/`, `wrangler.toml`: the account, leaderboard and challenges API (Cloudflare Pages Functions + D1), tested with `functions-tests/` (`npm test`)
+- `functions/`, `migrations/`, `wrangler.toml`: the account, leaderboard, challenges and groups API (Cloudflare Pages Functions + D1), tested with `functions-tests/` (`npm test`)
 - `workers/challenge-cron`: a scheduled Worker that ends challenges and sends reminders
 
 Players sign in with Google (no passwords are handled by this app), pick a nickname and appear on the leaderboard. See [Accounts and Leaderboard](#accounts-and-leaderboard).
@@ -143,6 +143,10 @@ npm test                              # API unit tests
 Players can challenge others to one game from the flag button in the top bar: pick a name, Single or Full Sheet, an end time (3 hours to 1 week) and players by nickname, or share the invite link (`/?join=...`). Only the players in a challenge see it. Each player's first finished challenge game counts, and it also counts on the leaderboard like any other game. A challenge ends at its end time or when everyone has played.
 
 Players in a challenge get push notifications when they are invited, when someone posts a score, about 6 hours before the end if they have not played, and when it ends. Notifications use standard Web Push (no Firebase or other service): Android works in the browser or installed app, iPhone and iPad need the Home Screen app on iOS 16.4 or later. Each player turns them on per device in the Challenges screen.
+
+### Groups
+
+From Challenges, then Groups, a player can start a group (they become its admin), find a group by name and ask to join, and see their groups. A new member only gets in when a group admin approves the request; admins also see and approve requests from the group page, can make other members admins (or plain members again) and remove members. A group always keeps at least one admin. Any member can invite a whole group they are in to a challenge, when creating it, from the invite panel, or with Challenge this group on the group page. Admins get a notification (and a count on the Groups button) when someone asks to join. The API is under `functions/api/groups/` (rules in `functions/_lib/groups.ts`, tables in `migrations/0006_groups.sql`).
 
 The end-of-challenge results and reminders come from a small scheduled Worker (`workers/challenge-cron`, every 15 minutes) that the deploy workflow publishes after the site.
 

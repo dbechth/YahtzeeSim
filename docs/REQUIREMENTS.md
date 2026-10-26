@@ -45,6 +45,7 @@ Terminology: **Card** = one 13-category scoresheet (a "game" column G1–G6). **
 | UR-20 | As a player I get a short, friendly story of my play style (what I go for with each kind of roll, how I fill the sheet, highlights and one tip) and a play-style badge shown next to my name on the leaderboard. As the owner I can preview and tune both, and read every player's full report, in a Windows research app. |
 | UR-21 | I can challenge selected players (or anyone I send a link to) to one game, and only the players in the challenge are notified on their iPhone or Android phone and can see the results. Challenge games also count on the leaderboard as normal games. |
 | UR-22 | The app tells me I can install it on my phone like an app, with the steps for my device, until I have done so. |
+| UR-23 | As a player I can join groups (a group admin approves new members), a group admin can make other members admins, and I can invite a whole group I am in to a challenge. |
 
 ## 3. Software requirements
 
@@ -253,6 +254,18 @@ A challenge is a friendly invitation to play one game, not a separate competitio
 | SW-PSH-03 | Messages shall be encrypted (RFC 8291 aes128gcm) and signed with VAPID (ES256) on the server without third-party services. The keys are secrets (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`) for both the Pages project and the Worker, created once by `scripts/setup-push.ps1`. Until they are set the app hides the notification option and challenges still work. | [webpush.ts](../functions/_lib/webpush.ts), [push/key.ts](../functions/api/push/key.ts), [setup-push.ps1](../scripts/setup-push.ps1) | UR-21 | ✅ |
 | SW-PSH-04 | Checking the notification state shall never hold up the challenges screen: the list loads first, and waiting for the service worker gives up after a few seconds (turning on then says it could not and to try again). | [ChallengesView.razor](../YahtzeeSim.Web/Components/ChallengesView.razor), [notifications.js](../YahtzeeSim.Web/wwwroot/js/notifications.js) | UR-21 | ✅ |
 
+### 3.14 Groups (GRP)
+
+Players form groups. Joining is by request and a group admin approves it. Rules are in [groups.ts](../functions/_lib/groups.ts); the UI is the Groups screens of [ChallengesView.razor](../YahtzeeSim.Web/Components/ChallengesView.razor) (Challenges, then Groups).
+
+| ID | Requirement | Source | UR | Status |
+|---|---|---|---|---|
+| SW-GRP-01 | A signed-in player with a nickname shall create a group with a name (up to 30 characters, unique ignoring letter case) and becomes its first admin. At most 20 members per group and 5 new groups per player per day. | [groups/index.ts](../functions/api/groups/index.ts), [0006_groups.sql](../migrations/0006_groups.sql) | UR-23 | ✅ |
+| SW-GRP-02 | Group names and member counts shall be findable by every signed-in player (`GET /api/groups/search`) so they can ask to join; the member list is only shown to the group's members (404 for anyone else, including players whose request is still waiting). | [groups/search.ts](../functions/api/groups/search.ts), [groups/[id].ts](../functions/api/groups/%5Bid%5D.ts) | UR-23 | ✅ |
+| SW-GRP-03 | A player shall ask to join a group (`POST /api/groups/:id/join`; at most 10 requests waiting). The request carries no rights until a group admin approves it; an admin can also decline it, and the player can withdraw it. Approving checks the member limit atomically. Only admins see the waiting requests. | [join.ts](../functions/api/groups/%5Bid%5D/join.ts), [requests.ts](../functions/api/groups/%5Bid%5D/requests.ts), [leave.ts](../functions/api/groups/%5Bid%5D/leave.ts) | UR-23 | ✅ |
+| SW-GRP-04 | A group admin shall make any member an admin and make an admin a plain member again (`POST /api/groups/:id/role`), and remove other members. A group always keeps at least one admin: the last admin cannot step down or leave while others remain, and a group whose only member leaves is deleted. Plain members cannot do any of this (403). | [role.ts](../functions/api/groups/%5Bid%5D/role.ts), [remove.ts](../functions/api/groups/%5Bid%5D/remove.ts), [groups.ts](../functions/_lib/groups.ts) | UR-23 | ✅ |
+| SW-GRP-05 | A player shall invite whole groups they are an active member of when creating a challenge and later (`groupIds`, up to 5), from the picker or from a group's Challenge this group button. Every active member is added and notified like an invited player, those already in the challenge are skipped, and the 20 player limit still applies. Groups the player is not in are rejected (404) without revealing anything about them. | [challenges.ts](../functions/_lib/challenges.ts), [invite.ts](../functions/api/challenges/%5Bid%5D/invite.ts), [ChallengesView.razor](../YahtzeeSim.Web/Components/ChallengesView.razor) | UR-23 | ✅ |
+| SW-GRP-06 | Group admins shall be told when someone asks to join (a notification that opens the group, and a count on the Groups button and the top-bar dot) and the player when they are approved. | [notify.ts](../functions/_lib/notify.ts), [challenges/index.ts](../functions/api/challenges/index.ts), [ChallengeService.cs](../YahtzeeSim.Web/Services/ChallengeService.cs) | UR-23 | ✅ |
 ## 4. Traceability matrix (UR → SW)
 
 | UR | Software requirements |
@@ -279,6 +292,7 @@ A challenge is a friendly invitation to play one game, not a separate competitio
 | UR-20 Play-style story and badge | ANA-10, ANA-12 … ANA-17 |
 | UR-21 Challenges and notifications | CHL-01 … CHL-08, PSH-01 … PSH-04, LDB-04 |
 | UR-22 Install prompt | PLT-04, PLT-08 |
+| UR-23 Groups | GRP-01 … GRP-06 |
 
 ## 5. Remaining work
 

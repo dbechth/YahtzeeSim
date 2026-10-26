@@ -381,7 +381,7 @@
 {
     <div class="overlay" @onkeydown="OnChallengesKeyDown">
         <div class="modal challenges-modal" role="dialog" aria-modal="true" aria-labelledby="ch-title" tabindex="-1" @ref="_dialogRef">
-            <ChallengesView OnClose="CloseChallenges" OnPlay="PlayChallengeAsync" OpenChallengeId="@_openChallengeId" Message="@_challengeMessage" />
+            <ChallengesView OnClose="CloseChallenges" OnPlay="PlayChallengeAsync" OpenChallengeId="@_openChallengeId" OpenGroupId="@_openGroupId" Message="@_challengeMessage" />
         </div>
     </div>
 }
@@ -478,6 +478,7 @@
     private bool _showLeaderboard;
     private bool _showChallenges;
     private string? _openChallengeId;
+    private string? _openGroupId;
     private string? _challengeMessage;
     private DotNetObjectReference<Home>? _self;
     private bool _showStrategy;
@@ -532,9 +533,10 @@
 
     private string ChallengesLabel => Challenges.UnreadCount > 0 ? $"Challenges {Challenges.UnreadCount} new" : "Challenges";
 
-    private void OpenChallenges(string? challengeId = null, string? message = null)
+    private void OpenChallenges(string? challengeId = null, string? message = null, string? groupId = null)
     {
         _openChallengeId = challengeId;
+        _openGroupId = groupId;
         _challengeMessage = message;
         _showChallenges = true;
     }
@@ -543,6 +545,7 @@
     {
         _showChallenges = false;
         _openChallengeId = null;
+        _openGroupId = null;
         _challengeMessage = null;
     }
 
@@ -588,13 +591,14 @@
         OpenColorPicker("Pick Pen Color", false);
     }
 
-    /// <summary>Handles links into the app: an invite (?join=) or a challenge to open (?challenge=, from notifications).</summary>
+    /// <summary>Handles links into the app: an invite (?join=), or a challenge (?challenge=) or group (?group=) to open from a notification.</summary>
     private async Task HandleChallengeLinksAsync()
     {
         string? openId = QueryValue(Navigation.Uri, "challenge");
+        string? groupId = QueryValue(Navigation.Uri, "group");
         string? pending = await Challenges.TakePendingJoinAsync();
         string? token = QueryValue(Navigation.Uri, "join") ?? pending;
-        if (openId != null || QueryValue(Navigation.Uri, "join") != null)
+        if (openId != null || groupId != null || QueryValue(Navigation.Uri, "join") != null)
         {
             try
             {
@@ -620,6 +624,10 @@
         {
             OpenChallenges(openId);
         }
+        else if (groupId != null)
+        {
+            OpenChallenges(groupId: groupId);
+        }
 
         StateHasChanged();
     }
@@ -633,6 +641,14 @@
             await InvokeAsync(() =>
             {
                 OpenChallenges(id);
+                StateHasChanged();
+            });
+        }
+        else if (QueryValue(url, "group") is { } groupId)
+        {
+            await InvokeAsync(() =>
+            {
+                OpenChallenges(groupId: groupId);
                 StateHasChanged();
             });
         }

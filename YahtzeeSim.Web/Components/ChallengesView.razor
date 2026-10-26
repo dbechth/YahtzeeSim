@@ -10,7 +10,14 @@
     {
         @Notice()
         <div class="ch-row ch-top">
-            <button type="button" class="ch-primary" @onclick="StartCreate">New challenge</button>
+            <button type="button" class="ch-primary" @onclick="() => StartCreateAsync()">New challenge</button>
+            <button type="button" class="ch-secondary" aria-label="@GroupsLabel" @onclick="ShowGroupsAsync">
+                Groups
+                @if (Challenges.PendingRequests > 0)
+                {
+                    <span class="ch-count" aria-hidden="true">@Challenges.PendingRequests</span>
+                }
+            </button>
         </div>
         @if (_list == null)
         {
@@ -70,6 +77,7 @@
 
             <label for="ch-search">Players</label>
             @Picker()
+            @GroupPicker()
             <p class="ch-fine">You can also share an invite link once it is created Anyone you send it to can join even if they are new</p>
 
             @if (_formError != null)
@@ -139,13 +147,14 @@
             {
                 <div class="ch-row">
                     <button type="button" class="ch-secondary" @onclick="ShareAsync">Share invite link</button>
-                    <button type="button" class="ch-secondary" @onclick="() => _inviting = !_inviting">Invite players</button>
+                    <button type="button" class="ch-secondary" @onclick="ToggleInvitingAsync">Invite players</button>
                 </div>
                 @if (_inviting)
                 {
                     @Picker()
+                    @GroupPicker()
                     <div class="ch-row">
-                        <button type="button" class="ch-primary" disabled="@(_busy || _picked.Count == 0)" @onclick="InviteAsync">Send invites</button>
+                        <button type="button" class="ch-primary" disabled="@(_busy || (_picked.Count == 0 && _pickedGroups.Count == 0))" @onclick="InviteAsync">Send invites</button>
                     </div>
                 }
             }
@@ -158,6 +167,189 @@
             </div>
         }
     }
+    else if (_view == View.Groups)
+    {
+        <div class="ch-row ch-top">
+            <button type="button" class="ch-primary" @onclick="StartCreateGroup">New group</button>
+        </div>
+        @if (_notice != null)
+        {
+            <p class="ch-ok" role="status">@_notice</p>
+        }
+        @if (_groups == null)
+        {
+            <p class="ch-message" role="status">@(_groupsError == null ? "Loading" : GroupErrorText(_groupsError))</p>
+        }
+        else
+        {
+            var mine = _groups.Where(g => !g.IsPending).ToList();
+            var waiting = _groups.Where(g => g.IsPending).ToList();
+            @if (mine.Count == 0)
+            {
+                <p class="ch-message">You are not in a group yet Start one or find a group below and ask to join</p>
+            }
+            else
+            {
+                <h4 class="ch-section">Your groups</h4>
+                <ul class="ch-list">
+                    @foreach (var g in mine)
+                    {
+                        <li>
+                            <button type="button" class="ch-card" @onclick="() => ShowGroupAsync(g.Id)">
+                                <span class="ch-card-top">
+                                    <strong>@g.Name</strong>
+                                    @if (g.IsAdmin)
+                                    {
+                                        <span class="ch-tag">Admin</span>
+                                    }
+                                    @if (g.Requests > 0)
+                                    {
+                                        <span class="ch-todo">@g.Requests waiting</span>
+                                    }
+                                </span>
+                                <span class="ch-card-sub">@MemberCount(g.Members)</span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+            @if (waiting.Count > 0)
+            {
+                <h4 class="ch-section">Waiting for approval</h4>
+                <ul class="ch-list">
+                    @foreach (var g in waiting)
+                    {
+                        <li class="ch-found">
+                            <span><strong>@g.Name</strong> <span class="ch-card-sub">@MemberCount(g.Members)</span></span>
+                            <button type="button" class="ch-link" @onclick="() => WithdrawRequestAsync(g)">Cancel request</button>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+
+        <h4 class="ch-section">Find a group</h4>
+        <label class="ch-sr" for="ch-group-search">Search groups by name</label>
+        <input id="ch-group-search" type="search" placeholder="Search by group name" autocomplete="off" autocapitalize="off" spellcheck="false"
+               value="@_groupSearch" @oninput="OnGroupSearchInput" />
+        @if (_groupSearched && _groupMatches.Count == 0)
+        {
+            <p class="ch-fine">No groups found</p>
+        }
+        <ul class="ch-list ch-found-list">
+            @foreach (var m in _groupMatches)
+            {
+                <li class="ch-found">
+                    <span><strong>@m.Name</strong> <span class="ch-card-sub">@MemberCount(m.Members)</span></span>
+                    @switch (m.Membership)
+                    {
+                        case "none":
+                            <button type="button" class="ch-small ch-small-primary" disabled="@_busy" @onclick="() => AskToJoinAsync(m)">Ask to join</button>
+                            break;
+                        case "pending":
+                            <span class="ch-tag">Waiting</span>
+                            break;
+                        default:
+                            <span class="ch-tag">You are in</span>
+                            break;
+                    }
+                </li>
+            }
+        </ul>
+        <div class="ch-row ch-bottom">
+            <button type="button" class="ch-secondary" @onclick="ShowListAsync">All challenges</button>
+        </div>
+    }
+    else if (_view == View.GroupCreate)
+    {
+        <form class="ch-form" @onsubmit="CreateGroupAsync">
+            <label for="ch-group-name">Group name</label>
+            <input id="ch-group-name" type="text" maxlength="30" @bind="_groupName" @bind:event="oninput" />
+            <p class="ch-fine">You will be the admin New members ask to join and you approve them</p>
+            @if (_formError != null)
+            {
+                <p class="ch-error" role="alert">@_formError</p>
+            }
+            <div class="ch-row">
+                <button type="submit" class="ch-primary" disabled="@_busy">Create group</button>
+                <button type="button" class="ch-secondary" @onclick="ShowGroupsAsync">Cancel</button>
+            </div>
+        </form>
+    }
+    else if (_view == View.GroupDetail)
+    {
+        @if (_group == null)
+        {
+            <p class="ch-message" role="status">@(_groupError == null ? "Loading" : GroupErrorText(_groupError))</p>
+            <div class="ch-row">
+                <button type="button" class="ch-secondary" @onclick="ShowGroupsAsync">Back</button>
+            </div>
+        }
+        else
+        {
+            var g = _group;
+            <p class="ch-meta">
+                <span class="ch-tag">@(g.IsAdmin ? "Admin" : "Member")</span>
+                <span>@MemberCount(g.Members.Count)</span>
+            </p>
+            @if (_notice != null)
+            {
+                <p class="ch-ok" role="status">@_notice</p>
+            }
+            @if (g.IsAdmin && g.Requests.Count > 0)
+            {
+                <h4 class="ch-section">Waiting for approval</h4>
+                <ul class="ch-list">
+                    @foreach (var nickname in g.Requests)
+                    {
+                        <li class="ch-found">
+                            <strong>@nickname</strong>
+                            <span class="ch-btns">
+                                <button type="button" class="ch-small ch-small-primary" disabled="@_busy" aria-label="Approve @nickname" @onclick="() => DecideAsync(nickname, true)">Approve</button>
+                                <button type="button" class="ch-small" disabled="@_busy" aria-label="Decline @nickname" @onclick="() => DecideAsync(nickname, false)">Decline</button>
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+            <h4 class="ch-section">Members</h4>
+            <ul class="ch-list">
+                @foreach (var m in g.Members)
+                {
+                    <li class="ch-found @(m.IsMe ? "ch-me" : null)">
+                        <span>
+                            <strong>@m.Nickname</strong>@(m.IsMe ? " you" : null)
+                            @if (m.IsAdmin)
+                            {
+                                <span class="ch-tag">Admin</span>
+                            }
+                        </span>
+                        @if (g.IsAdmin)
+                        {
+                            <span class="ch-btns">
+                                @if (!m.IsMe)
+                                {
+                                    <button type="button" class="ch-small" disabled="@_busy" aria-label="@RoleLabel(m)" @onclick="() => SetRoleAsync(m)">@RoleAction(m)</button>
+                                    <button type="button" class="ch-small ch-small-danger" disabled="@_busy" aria-label="Remove @m.Nickname from the group" @onclick="() => RemoveMemberAsync(m)">@(_confirm == "remove:" + m.Nickname ? "Sure" : "Remove")</button>
+                                }
+                                else if (g.Members.Count(x => x.IsAdmin) > 1)
+                                {
+                                    <button type="button" class="ch-small" disabled="@_busy" @onclick="() => SetRoleAsync(m)">Step down</button>
+                                }
+                            </span>
+                        }
+                    </li>
+                }
+            </ul>
+            <div class="ch-row">
+                <button type="button" class="ch-primary" @onclick="() => StartCreateAsync(g.Id)">Challenge this group</button>
+            </div>
+            <div class="ch-row ch-bottom">
+                <button type="button" class="ch-secondary" @onclick="ShowGroupsAsync">All groups</button>
+                <button type="button" class="ch-link" @onclick="LeaveGroupAsync">@(_confirm == "leave" ? "Tap again to leave" : "Leave group")</button>
+            </div>
+        }
+    }
 </div>
 
 <div class="ch-actions">
@@ -165,7 +357,7 @@
 </div>
 
 @code {
-    private enum View { List, Create, Detail }
+    private enum View { List, Create, Detail, Groups, GroupCreate, GroupDetail }
 
     private static readonly (string Label, int Hours)[] Durations = [("3 hours", 3), ("1 day", 24), ("2 days", 48), ("3 days", 72), ("1 week", 168)];
 
@@ -183,6 +375,10 @@
     /// <summary>Shown once at the top, e.g. why an invite link did not work.</summary>
     [Parameter]
     public string? Message { get; set; }
+
+    /// <summary>Opens straight to this group (from a notification about a join request or an approval).</summary>
+    [Parameter]
+    public string? OpenGroupId { get; set; }
 
     private View _view = View.List;
     private List<ChallengeSummary>? _list;
@@ -202,12 +398,30 @@
     private readonly List<string> _picked = [];
     private CancellationTokenSource? _searchCts;
 
+    private List<GroupSummary>? _groups;
+    private string? _groupsError;
+    private GroupDetail? _group;
+    private string? _groupError;
+    private string _groupName = string.Empty;
+    private string _groupSearch = string.Empty;
+    private List<GroupSearchResult> _groupMatches = [];
+    private bool _groupSearched;
+    private CancellationTokenSource? _groupSearchCts;
+    /// <summary>The player's own groups (not pending), offered when creating a challenge or inviting.</summary>
+    private List<GroupSummary> _myGroups = [];
+    private readonly HashSet<string> _pickedGroups = [];
+    /// <summary>The destructive button waiting for a second tap, e.g. "leave" or "remove:Nickname".</summary>
+    private string? _confirm;
+
     private PushState _push = PushState.Unavailable;
     private bool _pushFailed;
 
     private string Heading => _view switch
     {
         View.Create => "New challenge",
+        View.Groups => "Groups",
+        View.GroupCreate => "New group",
+        View.GroupDetail when _group != null => _group.Name,
         View.Detail when _detail != null => _detail.Title,
         _ => "Challenges"
     };
@@ -217,6 +431,10 @@
         if (OpenChallengeId != null)
         {
             await ShowDetailAsync(OpenChallengeId);
+        }
+        else if (OpenGroupId != null)
+        {
+            await ShowGroupAsync(OpenGroupId);
         }
         else
         {
@@ -286,6 +504,23 @@
         }
     };
 
+    private RenderFragment GroupPicker() => __builder =>
+    {
+        if (_myGroups.Count == 0)
+        {
+            return;
+        }
+
+        <span class="ch-label" id="ch-groups-label">Invite a group</span>
+        <div class="ch-seg ch-wrap" role="group" aria-labelledby="ch-groups-label">
+            @foreach (var g in _myGroups)
+            {
+                string id = g.Id;
+                <button type="button" class="@Seg(_pickedGroups.Contains(id))" aria-pressed="@(_pickedGroups.Contains(id) ? "true" : "false")" @onclick="() => ToggleGroup(id)">@g.Name @g.Members</button>
+            }
+        </div>
+    };
+
     private RenderFragment NotificationRow() => __builder =>
     {
         switch (_push)
@@ -342,7 +577,7 @@
         }
     }
 
-    private void StartCreate()
+    private async Task StartCreateAsync(string? groupId = null)
     {
         _view = View.Create;
         _title = "Full Sheet challenge";
@@ -350,6 +585,36 @@
         _hours = 24;
         _formError = null;
         ResetPicker();
+        if (groupId != null)
+        {
+            _pickedGroups.Add(groupId);
+        }
+
+        await LoadMyGroupsAsync();
+    }
+
+    private async Task LoadMyGroupsAsync()
+    {
+        var result = await Challenges.ListGroupsAsync();
+        _myGroups = result.Value?.Where(g => !g.IsPending).ToList() ?? [];
+        _pickedGroups.IntersectWith(_myGroups.Select(g => g.Id));
+    }
+
+    private void ToggleGroup(string id)
+    {
+        if (!_pickedGroups.Remove(id))
+        {
+            _pickedGroups.Add(id);
+        }
+    }
+
+    private async Task ToggleInvitingAsync()
+    {
+        _inviting = !_inviting;
+        if (_inviting)
+        {
+            await LoadMyGroupsAsync();
+        }
     }
 
     private async Task CreateAsync()
@@ -363,7 +628,8 @@
 
         _busy = true;
         _formError = null;
-        var result = await Challenges.CreateAsync(title, _mode, DateTimeOffset.Now.AddHours(_hours), _picked);
+        bool invitedAnyone = _picked.Count > 0 || _pickedGroups.Count > 0;
+        var result = await Challenges.CreateAsync(title, _mode, DateTimeOffset.Now.AddHours(_hours), _picked, _pickedGroups);
         _busy = false;
         if (result.Value is not { } created)
         {
@@ -374,18 +640,18 @@
         await ShowDetailAsync(created.Id);
         _notice = created.Missing.Count > 0
             ? $"Challenge created but these players were not found {string.Join(" ", created.Missing)}"
-            : _picked.Count > 0 ? "Challenge created and players invited" : "Challenge created Share the invite link to add players";
+            : invitedAnyone ? "Challenge created and players invited" : "Challenge created Share the invite link to add players";
     }
 
     private async Task InviteAsync()
     {
-        if (_detail == null || _picked.Count == 0)
+        if (_detail == null || (_picked.Count == 0 && _pickedGroups.Count == 0))
         {
             return;
         }
 
         _busy = true;
-        var result = await Challenges.InviteAsync(_detail.Id, _picked);
+        var result = await Challenges.InviteAsync(_detail.Id, _picked, _pickedGroups);
         _busy = false;
         string id = _detail.Id;
         await ShowDetailAsync(id);
@@ -472,9 +738,216 @@
     private void ResetPicker()
     {
         _picked.Clear();
+        _pickedGroups.Clear();
         _matches = [];
         _search = string.Empty;
     }
+
+    private async Task ShowGroupsAsync()
+    {
+        _view = View.Groups;
+        _group = null;
+        _notice = null;
+        _confirm = null;
+        _groupsError = null;
+        _groupSearch = string.Empty;
+        _groupMatches = [];
+        _groupSearched = false;
+        await LoadGroupsAsync();
+    }
+
+    private async Task LoadGroupsAsync()
+    {
+        _groups = null;
+        StateHasChanged();
+        var result = await Challenges.ListGroupsAsync();
+        _groups = result.Value;
+        _groupsError = result.Error;
+    }
+
+    private async Task ShowGroupAsync(string id)
+    {
+        _view = View.GroupDetail;
+        _group = null;
+        _groupError = null;
+        _notice = null;
+        _confirm = null;
+        StateHasChanged();
+        var result = await Challenges.GetGroupAsync(id);
+        _group = result.Value;
+        _groupError = result.Error;
+    }
+
+    private void StartCreateGroup()
+    {
+        _view = View.GroupCreate;
+        _groupName = string.Empty;
+        _formError = null;
+    }
+
+    private async Task CreateGroupAsync()
+    {
+        string name = _groupName.Trim();
+        if (name.Length == 0)
+        {
+            _formError = "Give the group a name";
+            return;
+        }
+
+        _busy = true;
+        _formError = null;
+        var result = await Challenges.CreateGroupAsync(name);
+        _busy = false;
+        if (result.Value is not { } id)
+        {
+            _formError = GroupErrorText(result.Error);
+            return;
+        }
+
+        await ShowGroupAsync(id);
+        _notice = "Group created Players can find it by name and ask to join";
+    }
+
+    private async Task OnGroupSearchInput(ChangeEventArgs e)
+    {
+        _groupSearch = e.Value?.ToString() ?? string.Empty;
+        _groupSearchCts?.Cancel();
+        var cts = _groupSearchCts = new CancellationTokenSource();
+        if (_groupSearch.Trim().Length == 0)
+        {
+            _groupMatches = [];
+            _groupSearched = false;
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(250, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        var found = await Challenges.SearchGroupsAsync(_groupSearch);
+        if (!cts.IsCancellationRequested)
+        {
+            _groupMatches = found;
+            _groupSearched = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AskToJoinAsync(GroupSearchResult match)
+    {
+        _busy = true;
+        string? error = await Challenges.RequestToJoinGroupAsync(match.Id);
+        _busy = false;
+        if (error == null)
+        {
+            _groupMatches = _groupMatches.Select(m => m.Id == match.Id ? m with { Membership = "pending" } : m).ToList();
+            await LoadGroupsAsync();
+            _notice = "Request sent An admin of the group will approve you";
+        }
+        else
+        {
+            _notice = GroupErrorText(error);
+        }
+    }
+
+    private async Task WithdrawRequestAsync(GroupSummary group)
+    {
+        string? error = await Challenges.LeaveGroupAsync(group.Id);
+        await LoadGroupsAsync();
+        _groupMatches = _groupMatches.Select(m => m.Id == group.Id ? m with { Membership = "none" } : m).ToList();
+        _notice = error == null ? "Request cancelled" : GroupErrorText(error);
+    }
+
+    private async Task DecideAsync(string nickname, bool approve)
+    {
+        if (_group == null)
+        {
+            return;
+        }
+
+        string id = _group.Id;
+        _busy = true;
+        string? error = await Challenges.DecideGroupRequestAsync(id, nickname, approve);
+        _busy = false;
+        await ShowGroupAsync(id);
+        _notice = error != null ? GroupErrorText(error) : approve ? $"{nickname} is now in the group" : $"{nickname} was declined";
+    }
+
+    private async Task SetRoleAsync(GroupMember member)
+    {
+        if (_group == null)
+        {
+            return;
+        }
+
+        string id = _group.Id;
+        _busy = true;
+        string? error = await Challenges.SetGroupRoleAsync(id, member.Nickname, member.IsAdmin ? "member" : "admin");
+        _busy = false;
+        await ShowGroupAsync(id);
+        _notice = error != null ? GroupErrorText(error)
+            : member.IsMe ? "You are no longer an admin"
+            : member.IsAdmin ? $"{member.Nickname} is no longer an admin" : $"{member.Nickname} is now an admin";
+    }
+
+    private async Task RemoveMemberAsync(GroupMember member)
+    {
+        if (_group == null)
+        {
+            return;
+        }
+
+        if (_confirm != "remove:" + member.Nickname)
+        {
+            _confirm = "remove:" + member.Nickname;
+            return;
+        }
+
+        string id = _group.Id;
+        _busy = true;
+        string? error = await Challenges.RemoveGroupMemberAsync(id, member.Nickname);
+        _busy = false;
+        await ShowGroupAsync(id);
+        _notice = error != null ? GroupErrorText(error) : $"{member.Nickname} was removed";
+    }
+
+    private async Task LeaveGroupAsync()
+    {
+        if (_group == null)
+        {
+            return;
+        }
+
+        if (_confirm != "leave")
+        {
+            _confirm = "leave";
+            return;
+        }
+
+        string? error = await Challenges.LeaveGroupAsync(_group.Id);
+        if (error == null)
+        {
+            await ShowGroupsAsync();
+        }
+        else
+        {
+            _confirm = null;
+            _notice = GroupErrorText(error);
+        }
+    }
+
+    private static string RoleAction(GroupMember m) => m.IsAdmin ? "Remove admin" : "Make admin";
+
+    private static string RoleLabel(GroupMember m) => m.IsAdmin ? $"Remove admin from {m.Nickname}" : $"Make {m.Nickname} an admin";
+
+    private static string MemberCount(int count) => count == 1 ? "1 member" : $"{count} members";
+
+    private string GroupsLabel => Challenges.PendingRequests > 0 ? $"Groups {Challenges.PendingRequests} waiting for approval" : "Groups";
 
     private static string Seg(bool active) => active ? "ch-seg-btn active" : "ch-seg-btn";
 
@@ -507,6 +980,8 @@
         "challenge_full" => "That challenge is full",
         "rate_limited" => "You have started a lot of challenges today Try again tomorrow",
         "too_many_players" => "A challenge can have up to 20 players",
+        "group_not_found" => "You can only invite groups you are in",
+        "invalid_groups" => "Pick groups from your list",
         "invalid_title" => "Use letters numbers and simple punctuation for the name",
         "deadline_out_of_range" => "Pick an end time between one hour and one week from now",
         "nickname_required" => "Pick a nickname first",
@@ -514,5 +989,26 @@
         _ => "Something went wrong Try again"
     };
 
-    public void Dispose() => _searchCts?.Cancel();
+    private static string GroupErrorText(string? error) => error switch
+    {
+        "offline" => "Groups need a connection",
+        "not_found" => "That group is not available You may not be in it any more",
+        "forbidden" => "Only group admins can do that",
+        "name_taken" => "A group with that name already exists",
+        "invalid_name" => "Use letters numbers and simple punctuation for the name",
+        "group_full" => "That group is full It can have up to 20 members",
+        "rate_limited" => "You have started a lot of groups today Try again tomorrow",
+        "too_many_requests" => "You have a lot of requests waiting Wait for some to be answered",
+        "last_admin" => "A group needs at least one admin Make someone else an admin first",
+        "cannot_remove_self" => "Use Leave group to leave",
+        "nickname_required" => "Pick a nickname first",
+        "signed_out" => "Sign in again to use groups",
+        _ => "Something went wrong Try again"
+    };
+
+    public void Dispose()
+    {
+        _searchCts?.Cancel();
+        _groupSearchCts?.Cancel();
+    }
 }

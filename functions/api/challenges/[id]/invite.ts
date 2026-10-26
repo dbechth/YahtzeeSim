@@ -1,9 +1,10 @@
 import { CHALLENGE_MAX_PLAYERS, invitePlayers, isChallengeId } from "../../../_lib/challenges";
+import { parseGroupIds } from "../../../_lib/groups";
 import { getSessionUser, isSafeMutation, json } from "../../../_lib/http";
 import { notify } from "../../../_lib/notify";
 import type { Env } from "../../../_lib/providers";
 
-/** Invites more players by nickname to an open challenge (any of its players may invite). */
+/** Invites more players by nickname, and whole groups the inviter belongs to, to an open challenge (any of its players may invite). */
 export const onRequestPost: PagesFunction<Env, "id"> = async ({ request, env, params, waitUntil }) => {
   if (!isSafeMutation(request)) {
     return json({ error: "bad_request" }, 400);
@@ -16,21 +17,23 @@ export const onRequestPost: PagesFunction<Env, "id"> = async ({ request, env, pa
     return json({ error: "nickname_required" }, 409);
   }
   const id = String(params.id);
-  const body = (await request.json().catch(() => null)) as { nicknames?: unknown } | null;
-  const nicknames = body?.nicknames;
+  const body = (await request.json().catch(() => null)) as { nicknames?: unknown; groupIds?: unknown } | null;
+  const nicknames = body?.nicknames ?? [];
+  const groupIds = parseGroupIds(body?.groupIds);
   if (
     !isChallengeId(id) ||
     !Array.isArray(nicknames) ||
-    nicknames.length === 0 ||
+    !groupIds ||
+    nicknames.length + groupIds.length === 0 ||
     nicknames.length > CHALLENGE_MAX_PLAYERS ||
     nicknames.some((n) => typeof n !== "string" || n.length > 32)
   ) {
     return json({ error: "invalid_body" }, 400);
   }
 
-  const result = await invitePlayers(env.DB, { id: user.id, nickname: user.nickname }, id, nicknames as string[], Date.now());
+  const result = await invitePlayers(env.DB, { id: user.id, nickname: user.nickname }, id, nicknames as string[], groupIds, Date.now());
   if (!result.ok) {
-    return json({ error: result.error }, result.error === "not_found" ? 404 : 409);
+    return json({ error: result.error }, result.error === "not_found" || result.error === "group_not_found" ? 404 : 409);
   }
   if (result.event) {
     waitUntil(notify(env, [result.event]));
