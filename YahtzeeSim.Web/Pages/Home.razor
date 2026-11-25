@@ -8,14 +8,14 @@
 @inject ChallengeService Challenges
 @inject NavigationManager Navigation
 
-<PageTitle>YahtzeeSim</PageTitle>
+<PageTitle>YahtzeeSim - Thanksgiving</PageTitle>
 
 <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">@_announcement</div>
 
 <div class="game-page" inert="@HasOpenDialog">
   <header class="topbar">
     <h1 class="brand">
-        <span class="brand-mark" aria-hidden="true">&#9860;</span>
+        <span class="brand-mark" aria-hidden="true">&#129411;</span>
         <span class="brand-name">Yahtzee<span>Sim</span></span>
     </h1>
     <button type="button" class="dock-btn dock-side" aria-label="@DockSideLabel" title="@DockSideLabel" @onclick="ToggleDiceSideAsync">
@@ -56,7 +56,7 @@
   <div class="play-layout dice-@_diceSide dice-@_diceEdge">
    <div class="play-panel turn-card">
     <div class="turn-overline">
-        <span class="turn-mode">@(_isGameStarted ? ModeLabel : "New game")</span>
+        <span class="turn-mode">Thanksgiving &middot; @(_isGameStarted ? ModeLabel : "New game")</span>
         <span class="turn-side">
             <button type="button" class="undo" disabled="@(!_isGameStarted || !_engine.CanUndo)" @onclick="UndoAsync"><span aria-hidden="true">&#8630; </span>Undo</button>
             @if (TurnNumber is int turn)

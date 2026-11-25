@@ -120,7 +120,7 @@ h3 {
 }
 
 .ch-secondary {
-    background: #e4e6dc;
+    background: var(--section);
     color: var(--forest);
 }
 
@@ -213,7 +213,7 @@ h3 {
 }
 
 .ch-me td {
-    background: rgba(184, 239, 199, 0.45);
+    background: rgba(231, 166, 74, 0.28);
     font-weight: 700;
 }
 
@@ -253,7 +253,7 @@ input[type="search"] {
     border: 1px solid var(--line);
     border-radius: 999px;
     overflow: hidden;
-    background: #e4e6dc;
+    background: var(--section);
     justify-self: start;
 }
 
@@ -370,7 +370,7 @@ input[type="search"] {
 }
 
 .ch-found.ch-me {
-    background: rgba(184, 239, 199, 0.45);
+    background: rgba(231, 166, 74, 0.28);
 }
 
 .ch-found .ch-tag {
@@ -393,7 +393,7 @@ input[type="search"] {
     padding: 0.25rem 0.75rem;
     border: 0;
     border-radius: 8px;
-    background: #e4e6dc;
+    background: var(--section);
     color: var(--forest);
     font-weight: 700;
     font-size: 0.88rem;
