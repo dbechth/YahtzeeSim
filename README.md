@@ -37,6 +37,12 @@ The app shows an install banner with these steps until it is installed.
 2. Tap Install in the banner, or open the browser menu (⋮) and tap Install app or Add to Home screen.
 3. Launch from the home screen or app list.
 
+### Seasonal Theme
+
+The optional seasonal layer is controlled by the `enabled`, `snow`, and `elves` switches in `YahtzeeSim.Web/wwwroot/js/seasonal-theme.js`. Set `enabled` to `false` to return to the standard theme, metadata, manifest, and pen behavior without removing the seasonal files.
+
+Seasonal visuals live in `css/seasonal-christmas.css`, with a matching `manifest.christmas.webmanifest`. Add the next season by defining another theme in the same JavaScript configuration and stylesheet rather than replacing the base palette.
+
 For sharing outside your local network, deploy `YahtzeeSim.Web` to a host like:
 
 - GitHub Pages

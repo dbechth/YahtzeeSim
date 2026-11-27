@@ -15,7 +15,7 @@
 <div class="game-page" inert="@HasOpenDialog">
   <header class="topbar">
     <h1 class="brand">
-        <span class="brand-mark" aria-hidden="true">&#9860;</span>
+        <span class="brand-mark" aria-hidden="true"><span class="brand-die">&#9860;</span><span class="seasonal-santa-hat"></span></span>
         <span class="brand-name">Yahtzee<span>Sim</span></span>
     </h1>
     <button type="button" class="dock-btn dock-side" aria-label="@DockSideLabel" title="@DockSideLabel" @onclick="ToggleDiceSideAsync">
@@ -588,7 +588,7 @@
         DismissSplash();
         RefreshAll(false);
         await RemoveStorageAsync(SaveKey);
-        OpenColorPicker("Pick Pen Color", false);
+        await OpenColorPicker("Pick Pen Color", false);
     }
 
     /// <summary>Handles links into the app: an invite (?join=), or a challenge (?challenge=) or group (?group=) to open from a notification.</summary>
@@ -1094,14 +1094,23 @@
         DismissSplash();
         RefreshAll(false);
         await RemoveStorageAsync(SaveKey);
-        OpenColorPicker("Pick Pen Color", false);
+        await OpenColorPicker("Pick Pen Color", false);
     }
 
-    private void OpenColorPicker(string title, bool allowKeepCurrent)
+    private async Task OpenColorPicker(string title, bool allowKeepCurrent)
     {
         _colorPickerTitle = title;
         _allowKeepCurrentColor = allowKeepCurrent;
-        SetPickFromHex(_currentPenColorHex);
+        string startColor = _currentPenColorHex;
+        try
+        {
+            startColor = await JS.InvokeAsync<string?>("yahtzeeSimSeasonalTheme.suggestPenColor") ?? startColor;
+        }
+        catch (JSException)
+        {
+        }
+
+        SetPickFromHex(startColor);
         _showColorPicker = true;
     }
 
@@ -1363,7 +1372,7 @@
 
         if (result.WasYahtzee)
         {
-            OpenColorPicker("Yahtzee! Pick a pen color", true);
+            await OpenColorPicker("Yahtzee! Pick a pen color", true);
         }
 
         bool refreshBadge = false;

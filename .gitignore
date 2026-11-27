@@ -34,6 +34,7 @@
 !**/*.plist
 !**/*.manifest
 !**/*.appxmanifest
+!**/_headers
 !**/*.png
 !**/*.ico
 !**/*.svg

@@ -52,7 +52,6 @@ button:disabled {
 /* Top bar */
 
 .topbar {
-    position: relative;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -60,23 +59,6 @@ button:disabled {
     padding: 0 0.7rem;
     background: var(--forest-dark);
     border-radius: 16px 16px 0 0;
-    overflow: hidden;
-}
-
-.topbar::after {
-    content: "";
-    position: absolute;
-    right: -2rem;
-    bottom: -3.5rem;
-    width: 11rem;
-    height: 8rem;
-    border: 1px solid rgba(242, 196, 83, 0.14);
-    border-radius: 50%;
-    box-shadow:
-        -2.5rem -0.6rem 0 -1rem rgba(184, 74, 36, 0.34),
-        -5rem -0.9rem 0 -1rem rgba(242, 196, 83, 0.18);
-    pointer-events: none;
-    transform: rotate(-16deg);
 }
 
 .brand {
@@ -96,7 +78,7 @@ button:disabled {
     border-radius: 9px;
     background: linear-gradient(145deg, var(--mint), var(--mint-deep));
     color: var(--forest-dark);
-    font-size: 1.45rem;
+    font-size: 1.25rem;
 }
 
 .brand-name {
@@ -118,7 +100,7 @@ button:disabled {
     min-width: 2.75rem;
     min-height: 2.75rem;
     padding: 0 0.6rem;
-    border: 1px solid rgba(242, 196, 83, 0.5);
+    border: 1px solid rgba(184, 239, 199, 0.35);
     border-radius: 999px;
     background: transparent;
     color: var(--mint);
@@ -143,7 +125,7 @@ button:disabled {
     width: 0.6rem;
     height: 0.6rem;
     border-radius: 50%;
-    background: #e7a64a;
+    background: #ff8a3d;
     box-shadow: 0 0 0 2px var(--forest-dark);
 }
 
@@ -153,15 +135,15 @@ button:disabled {
 }
 
 .dock-btn:hover {
-    background: rgba(242, 196, 83, 0.16);
+    background: rgba(184, 239, 199, 0.14);
 }
 
 .new-game {
     min-height: 2.75rem;
     padding: 0 0.9rem;
-    border: 1px solid rgba(242, 196, 83, 0.6);
+    border: 1px solid rgba(184, 239, 199, 0.55);
     border-radius: 999px;
-    background: rgba(242, 196, 83, 0.1);
+    background: rgba(184, 239, 199, 0.1);
     color: var(--mint);
     font-size: 0.85rem;
     font-weight: 700;
@@ -169,7 +151,7 @@ button:disabled {
 }
 
 .new-game:hover {
-    background: rgba(242, 196, 83, 0.2);
+    background: rgba(184, 239, 199, 0.2);
 }
 
 .content {
@@ -197,11 +179,9 @@ button:disabled {
     flex-direction: column;
     padding: 0.6rem 0.7rem 0.7rem;
     border-radius: 16px;
-    background:
-        radial-gradient(circle at 92% 0%, rgba(242, 196, 83, 0.2) 0 2.8rem, transparent 2.9rem),
-        linear-gradient(160deg, #8b3524 0%, #5a211c 58%, #3f1917 100%);
-    color: #fff4dc;
-    box-shadow: 0 10px 24px rgba(63, 25, 23, 0.32);
+    background: linear-gradient(160deg, #285c4e 0%, #17382f 100%);
+    color: #eaf5ee;
+    box-shadow: 0 10px 24px rgba(16, 42, 37, 0.25);
 }
 
 .turn-overline {
@@ -216,12 +196,12 @@ button:disabled {
     font-weight: 800;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #f4d5a0;
+    color: #cfe6d8;
 }
 
 .round-pill {
     padding: 0.05rem 0.6rem;
-    border: 1px solid rgba(242, 196, 83, 0.55);
+    border: 1px solid rgba(184, 239, 199, 0.5);
     border-radius: 999px;
     font-size: 0.65rem;
     font-weight: 800;
@@ -243,7 +223,7 @@ button:disabled {
     margin: 0 0 0.35rem;
     font-size: 0.75rem;
     line-height: 1.3;
-    color: #f1dbc0;
+    color: #d3e7da;
 }
 
 .notice {
@@ -411,7 +391,7 @@ button:disabled {
 }
 
 .action-row .roll:hover:not(:disabled) {
-    background: #f2bd65;
+    background: #cbf5d6;
 }
 
 .keycap {
@@ -426,7 +406,7 @@ button:disabled {
 
 .action-row .roll:disabled {
     background: rgba(255, 255, 255, 0.1);
-    color: #f1dbc0;
+    color: #d3e7da;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
 
@@ -453,7 +433,7 @@ button:disabled {
 }
 
 .undo:disabled {
-    color: #ddbea7;
+    color: #b5c9bd;
     opacity: 0.8;
 }
 
